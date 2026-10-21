@@ -1,5 +1,5 @@
 import { Home, BarChart2, Users, Search, CalendarDays, ChevronDown, LogOut } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authApi } from "../../shared/api/auth";
 import { apiClient, apiErrorMessage } from "../../shared/api/client";
 import { frontDeskApi } from "../../shared/api/frontDesk";
@@ -11,7 +11,7 @@ import type { EmployeeAdmin } from "../../shared/types/hrGovernance";
 import { formatVnd } from "../../shared/utils/money";
 import { invoiceTotal } from "../accounting/accountingLogic";
 import { useManagementFinance, type ManagementFinance } from "./managementFinance";
-import { ManagerCatalogs } from "./ManagerCatalogs";
+import { ManagerCatalogs, type CatalogFocusTarget } from "./ManagerCatalogs";
 import "./management.css";
 type NavPage = "overview" | "reports" | "catalogs";
 type ManagerRole = "manager";
@@ -148,12 +148,15 @@ export default function ManagerDashboard({onBack}: {role:ManagerRole;onBack:()=>
  const finance=useManagementFinance();
  const [page,setPage]=useState<NavPage>("overview");
  const [search,setSearch]=useState("");
+ const [catalogFocus,setCatalogFocus]=useState<CatalogFocusTarget|null>(null);
+ const catalogFocusSequence=useRef(0);
  const [liveRooms,setLiveRooms]=useState<ApiRoom[]>([]);
  const [liveEmployees,setLiveEmployees]=useState<EmployeeAdmin[]>([]);
  const [liveInvoices,setLiveInvoices]=useState<ApiInvoice[]>([]);
  const [managementSummary,setManagementSummary]=useState<ManagementOverview|null>(null);
  const [roomTypePerformance,setRoomTypePerformance]=useState<RoomTypePerformance[]>([]);
  const [managerName,setManagerName]=useState("Quản lý");
+ const [managerEmployeeId,setManagerEmployeeId]=useState("");
  const [operationsError,setOperationsError]=useState("");
  const [topProfileOpen,setTopProfileOpen]=useState(false);
  const [sidebarProfileOpen,setSidebarProfileOpen]=useState(false);
@@ -164,7 +167,7 @@ export default function ManagerDashboard({onBack}: {role:ManagerRole;onBack:()=>
    const [profile,rooms,employees,summary,roomTypes]=await Promise.all([authApi.employeeProfile(),apiClient.request<ApiRoom[]>("/api/rooms"),apiClient.request<EmployeeAdmin[]>("/api/auth/employees"),managementApi.overview(),managementApi.roomTypePerformance()]);
    const invoices:ApiInvoice[]=[];
    for(let page=0;;page++){const result=await frontDeskApi.invoices({page,size:100});invoices.push(...result.items);if(page+1>=result.total_pages)break;}
-   if(active){setManagerName(profile.full_name);setLiveRooms(rooms);setLiveEmployees(employees);setLiveInvoices(invoices);setManagementSummary(summary);setRoomTypePerformance(roomTypes);setOperationsError("");}
+   if(active){setManagerName(profile.full_name);setManagerEmployeeId(profile.employee_id);setLiveRooms(rooms);setLiveEmployees(employees);setLiveInvoices(invoices);setManagementSummary(summary);setRoomTypePerformance(roomTypes);setOperationsError("");}
  })().catch(e=>{if(active)setOperationsError(apiErrorMessage(e,"Không thể tải dữ liệu quản lý."));}); return()=>{active=false;};},[version]);
  return (
     <div className="management-station" style={{ display:"flex",height:"100vh",overflow:"hidden",
@@ -254,8 +257,8 @@ export default function ManagerDashboard({onBack}: {role:ManagerRole;onBack:()=>
               style={{ width:"100%",height:34,paddingLeft:32,paddingRight:42,borderRadius:8,
                 border:"1px solid #E2E8F0",background:"#F8FAFC",fontSize:12,outline:"none",boxSizing:"border-box" }} />
             {search.trim() && <div style={{position:"absolute",left:0,right:0,top:38,zIndex:50,background:"white",border:"1px solid #CBD5E1",borderRadius:8,padding:8,maxHeight:280,overflowY:"auto",boxShadow:"0 10px 20px #0F172A18"}}>
-              {[...liveRooms.filter(room => `${room.id} ${room.name}`.toLowerCase().includes(search.toLowerCase())).slice(0,6).map(room => ({key:`room-${room.id}`,label:`Phòng ${room.name} · ${room.room_type_name}`,page:"catalogs" as NavPage})),
-              ...liveEmployees.filter(employee => `${employee.employee_id} ${employee.full_name}`.toLowerCase().includes(search.toLowerCase())).slice(0,6).map(employee=>({key:employee.employee_id,label:employee.full_name,page:"reports" as NavPage}))].map(result=><button key={result.key} onClick={()=>{const room=liveRooms.find(item=>result.key===`room-${item.id}`); setPage(result.page);setSearch("");}} style={{display:"block",width:"100%",textAlign:"left",padding:10,fontSize:13}}>{result.label}</button>)}
+              {[...liveRooms.filter(room => `${room.id} ${room.name}`.toLowerCase().includes(search.toLowerCase())).slice(0,6).map(room => ({key:`room-${room.id}`,label:`Phòng ${room.name} · ${room.room_type_name}`,type:"room" as const,id:room.id})),
+              ...liveEmployees.filter(employee => `${employee.employee_id} ${employee.full_name}`.toLowerCase().includes(search.toLowerCase())).slice(0,6).map(employee=>({key:`employee-${employee.employee_id}`,label:employee.full_name,type:"employee" as const,id:employee.employee_id}))].map(result=><button key={result.key} onClick={()=>{setCatalogFocus({type:result.type,id:result.id,nonce:++catalogFocusSequence.current});setPage("catalogs");setSearch("");}} style={{display:"block",width:"100%",textAlign:"left",padding:10,fontSize:13}}>{result.label}</button>)}
               {!liveRooms.some(room => `${room.id} ${room.name}`.toLowerCase().includes(search.toLowerCase())) && !liveEmployees.some(employee => `${employee.employee_id} ${employee.full_name}`.toLowerCase().includes(search.toLowerCase())) && <p style={{padding:10,fontSize:13}}>Không tìm thấy kết quả.</p>}
             </div>}
           </div>
@@ -314,7 +317,7 @@ export default function ManagerDashboard({onBack}: {role:ManagerRole;onBack:()=>
           {operationsError && <p role="alert" className="p-4 text-red-700">{operationsError} <button onClick={()=>setVersion(v=>v+1)}>Tải lại</button></p>}
           {page === "overview" && <OverviewScreen rooms={liveRooms} invoices={liveInvoices} finance={finance} summary={managementSummary}/>}
           {page === "reports" && <ReportsScreen invoices={liveInvoices} finance={finance} summary={managementSummary} roomTypeStats={roomTypePerformance}/>}
-          {page === "catalogs" && <ManagerCatalogs onChanged={()=>setVersion(v=>v+1)}/>}
+          {page === "catalogs" && <ManagerCatalogs currentEmployeeId={managerEmployeeId} focusTarget={catalogFocus} onChanged={()=>setVersion(v=>v+1)}/>}
         </div>
       </div>
 

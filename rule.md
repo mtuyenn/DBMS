@@ -13,7 +13,7 @@ Chỉ có bốn vai trò: Lễ tân, Quản lý, Buồng phòng/Dịch vụ và 
 
 - Lễ tân quản lý khách và booking; nhận/hủy/trả phòng và ghi nhận thu.
 - Quản lý quản lý nhân viên, phòng, loại phòng, xem doanh thu và nhật ký.
-- Buồng phòng/Dịch vụ cập nhật trạng thái dọn phòng, danh mục dịch vụ và dịch vụ đã dùng.
+- Buồng phòng/Dịch vụ cập nhật trạng thái dọn phòng, danh mục dịch vụ và xem tổng hợp/lịch sử dịch vụ đã dùng. Lễ tân ghi nhận và hủy dịch vụ cho lượt lưu trú.
 - Kế toán xem hóa đơn/giao dịch/biên lai, ghi nhận thanh toán và xem doanh thu.
 
 ## 3. Luồng chính
@@ -22,12 +22,12 @@ Chỉ có bốn vai trò: Lễ tân, Quản lý, Buồng phòng/Dịch vụ và 
 - Nhận phòng đổi trạng thái booking và phòng cùng transaction.
 - Giá phòng/dịch vụ được lưu tại lúc phát sinh; thay đổi giá danh mục không làm thay đổi lịch sử.
 - Thanh toán tạo giao dịch và biên lai nguyên tử. Checkout lập hóa đơn, thu đủ số dư, phát biên lai, kết thúc booking và đưa phòng sang `Cần dọn` trong một transaction.
-- Không sửa/xóa hóa đơn đã thanh toán. Dịch vụ sai chỉ hủy trước khi thanh toán.
+- Không sửa/xóa hóa đơn đã thanh toán. Chỉ ghi nhận hoặc hủy dịch vụ trước khi lập hóa đơn.
 - Buồng phòng chỉ được đặt phòng sang `Cần dọn`, `Đang dọn`, `Sẵn sàng`; backend không cho đặt `Sẵn sàng` khi còn khách.
 
 ## 4. SQL và quyền
 
-Giữ đúng sáu SQL Server Flyway file: V1 bảng/seed, V2 index, V3 function, V4 view, V5 stored procedure, V6 trigger. Mỗi role có 4 stored procedure, 3 function và 2 trigger; toàn hệ thống có 16 stored procedure, 12 function và 8 trigger. Index và view có thể thêm theo nhu cầu. Đặt một định nghĩa cuối cho mỗi object trong file sở hữu. `reset_demo.sql` chỉ thao tác dữ liệu.
+Giữ chuỗi SQL Server Flyway V1–V8 hiện có: V1 bảng/seed, V2 index, V3 function, V4 view, V5 stored procedure nghiệp vụ, V6 trigger, V7 procedure backup và V8 phân quyền SQL Server. Mỗi role có 4 stored procedure nghiệp vụ, 3 function và 2 trigger; toàn hệ thống có 16 stored procedure nghiệp vụ, thêm một procedure backup, 12 function và 8 trigger. Chỉ thêm version khi chủ repo đồng ý. Đặt một định nghĩa cuối cho mỗi object trong file sở hữu; không sửa migration đã áp dụng. `reset_demo.sql` chỉ thao tác dữ liệu.
 
 DAO có thể đọc trực tiếp một bảng. Truy vấn đọc JOIN nhiều bảng phải đi qua VIEW trong V4. Không repair checksum hoặc sửa Flyway history. Không dựng lại database khác `QLKS` nếu chưa được cho phép.
 

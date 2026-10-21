@@ -1,25 +1,24 @@
 # Java / Maven
 target/
-**/target/
 *.class
-**/__pycache__/
-**/.pytest_cache/
-**/.venv/
-*.egg-info/
 
 # Frontend
 node_modules/
 dist/
 .vite/
+.vercel/
+*.tsbuildinfo
 
 # IDE / OS
 .idea/
 *.iml
 .vscode/
-/.github/modernize/
 .DS_Store
 
 # Secrets and local configuration
+# Owner-managed configuration and its machine-specific regression guard stay local.
+/backend/src/main/resources/application.yml
+/backend/src/test/java/com/hospitality/mis/service/auth/MailConfigurationTest.java
 .env
 .env.*
 !.env.example

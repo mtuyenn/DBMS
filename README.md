@@ -2,6 +2,8 @@
 
 Ứng dụng quản lý một khách sạn nhỏ. Khách xem trang giới thiệu phòng và dịch vụ trước khi đăng nhập; nhân viên dùng bốn màn: Lễ tân, Quản lý, Buồng phòng/Dịch vụ và Kế toán.
 
+Trang công khai chỉ giới thiệu khách sạn, phòng và dịch vụ với giá tham khảo từ danh mục đang hoạt động. Khách liên hệ trực tiếp khách sạn; trang không nhận đặt phòng trực tuyến, tài khoản khách hoặc thanh toán.
+
 ## Chạy local
 
 SQL Server chạy trong Docker Compose riêng của dự án, cổng host `1434`, volume `web-hotel-standalone-sqlserver-data`:
@@ -29,10 +31,18 @@ npm ci
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-Flyway cài V1–V6 vào database trống. Bốn tài khoản demo (`FRONTDESK`, `MANAGER`, `HOUSEKEEP`, `ACCOUNTING`) dùng mật khẩu `hotel123`.
+Flyway cài V1–V8 vào database trống. V7 cài procedure backup; backup chỉ được tạo khi chủ động gọi procedure. Bốn tài khoản demo (`FRONTDESK`, `MANAGER`, `HOUSEKEEP`, `ACCOUNTING`) dùng mật khẩu `hotel123`.
 
 ## Phạm vi hiện tại
 
-12 bảng nghiệp vụ: `NhanVien`, `LoaiPhong`, `NhatKyKiemSoat`, `KhachLuuTru`, `PhieuDatPhong`, `ChiTietDatPhong`, `Phong`, `DichVu`, `SuDungDichVu`, `HoaDon`, `GiaoDichThanhToan`, `BienLai`. SQL giữ đúng sáu file V1–V6: schema và ít mẫu dữ liệu, 8 index, 5 function, views, 16 procedure và 5 trigger.
+12 bảng nghiệp vụ: `NhanVien`, `LoaiPhong`, `NhatKyKiemSoat`, `KhachLuuTru`, `PhieuDatPhong`, `ChiTietDatPhong`, `Phong`, `DichVu`, `SuDungDichVu`, `HoaDon`, `GiaoDichThanhToan`, `BienLai`. Flyway có V1–V8: schema và baseline seed, 8 index, 12 function, 17 view, 16 procedure, 8 trigger, procedure backup và quyền SQL Server.
 
-`database/demo/reset_demo.sql` chỉ xóa dữ liệu giao dịch; nó chặn xóa nếu đã có hóa đơn thanh toán. Hướng dẫn và hợp đồng API: [backend](backend/README.md), [frontend](frontend/README.md), [API](docs/api-contract.md).
+`database/demo/reset_demo.sql` chỉ xóa dữ liệu giao dịch; nó chặn xóa nếu đã có hóa đơn thanh toán.
+
+## Tài liệu
+
+- [Chạy và kiểm tra backend](backend/README.md), [frontend](frontend/README.md).
+- [Kiến trúc](docs/architecture.md) và [hợp đồng API](docs/api-contract.md).
+- [Các migration SQL](backend/src/main/resources/db/migration/README.md) và [vận hành database demo, backup, phân quyền](database/demo/README.md).
+- [Báo cáo phần Lễ tân](docs/bao-cao-phan-le-tan.md).
+- [Quy tắc dự án](rule.md) và [hướng dẫn làm việc trong repo](AGENTS.md).

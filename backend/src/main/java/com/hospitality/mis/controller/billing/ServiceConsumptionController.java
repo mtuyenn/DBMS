@@ -11,8 +11,11 @@ import java.util.List;
 public class ServiceConsumptionController {
     private final ServiceConsumptionDatabase database;
     public ServiceConsumptionController(ServiceConsumptionDatabase database) { this.database=database; }
-    @GetMapping @PreAuthorize("@departmentAccess.allows(authentication, 'RESERVATION_SERVICE_WRITE')")
+    @GetMapping @PreAuthorize("@departmentAccess.allows(authentication, 'SERVICE_READ')")
     public List<ServiceConsumptionDtos.Response> list(@RequestParam(name="reservation_id",required=false) Long reservation) { return database.list(reservation); }
+    @GetMapping("/summary") @PreAuthorize("@departmentAccess.allows(authentication, 'SERVICE_READ')")
+    @Transactional(readOnly=true)
+    public List<ServiceConsumptionDtos.Summary> summary() { return database.summary(); }
     @PostMapping @Transactional @PreAuthorize("@departmentAccess.allows(authentication, 'RESERVATION_SERVICE_WRITE')")
     public ServiceConsumptionDtos.Response create(@Valid @RequestBody ServiceConsumptionDtos.CreateRequest request) {
         long id=database.create(request,SecurityActor.currentActor());

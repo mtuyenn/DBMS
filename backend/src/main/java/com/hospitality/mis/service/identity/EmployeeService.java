@@ -60,6 +60,9 @@ public class EmployeeService {
     public boolean canManageRole(Authentication auth,EmployeeRole target){var role=roleOf(auth);return role!=null&&role.canManage(target);}
     public boolean canResetEmployee(Authentication auth,String id){return employees.find(id).map(e->canManageRole(auth,e.role())).orElse(false);}
     public boolean canManageEmployeeRole(Authentication auth,String id,EmployeeRole role){return employees.find(id).map(e->!isCurrentActor(id)&&canManageRole(auth,e.role())&&canManageRole(auth,role)).orElse(false);}
+    public boolean canDeleteEmployee(Authentication auth,String id){return auth!=null&&auth.isAuthenticated()&&id!=null&&!id.equals(auth.getName())&&employees.find(id).map(e->canManageRole(auth,e.role())).orElse(false);}
+    @Transactional
+    public void deactivate(String id){setEnabled(id,false);}
     @Transactional
     public EmployeeAdminDtos.Response setRole(String id,EmployeeRole role){
         var e=lockedRequired(id);requireNotSelf(id,"SELF_ROLE_CHANGE_FORBIDDEN");requireCurrentActorCanManage(e.role());requireCurrentActorCanManage(role);

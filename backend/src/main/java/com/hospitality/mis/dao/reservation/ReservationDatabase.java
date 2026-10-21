@@ -113,7 +113,8 @@ public class ReservationDatabase {
                     case 51411 -> "SERVICE_NOT_AVAILABLE";
                     default -> null;
                 };
-                if (code != null) return error(code, sql.getMessage());
+                if (code != null) return error(code, sql.getErrorCode() == 51412
+                        ? "Không thể hủy dịch vụ sau khi lập hóa đơn" : sql.getMessage());
             }
         }
         return error;

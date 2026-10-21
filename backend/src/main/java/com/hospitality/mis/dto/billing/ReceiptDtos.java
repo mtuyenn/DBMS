@@ -43,4 +43,6 @@ public final class ReceiptDtos {
                            String issuedBy) {}
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record PageResponse(java.util.List<Response> items, int page, int size, long totalElements, int totalPages) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record UnissuedTransaction(Long transactionId, Long invoiceId, BigDecimal amount, PaymentMethod method) {}
 }

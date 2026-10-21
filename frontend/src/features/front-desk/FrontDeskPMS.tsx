@@ -1,7 +1,7 @@
 import type { Room, OccStatus, CleanStatus, VipTier, FolioItem } from "./types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { authApi } from "../../shared/api/auth";
-import { ApiError, apiErrorMessage } from "../../shared/api/client";
+import { ApiError, apiClient, apiErrorMessage } from "../../shared/api/client";
 import { frontDeskApi, newFrontDeskIdempotencyKey } from "../../shared/api/frontDesk";
 import { EmployeeProfileDropdown } from "../../shared/components/EmployeeProfileDropdown";
 import type { Dashboard, DashboardItem, Guest, Invoice, PaymentMethod, Receipt as ReceiptDto, Reservation, ServiceCatalogItem, TimelineEvent } from "../../shared/types/frontDesk";
@@ -260,7 +260,7 @@ function RoomDrawer({ room, rooms, onClose, onRefresh, onCheckIn, onSettlementCh
   const reservationId = reservationIdFromRoom(room);
   const validReservation = Number.isSafeInteger(reservationId) && reservationId > 0;
   const isCheckedIn = room.reservationStatus === "CHECKED_IN";
-  const hasInvoice = isCheckedIn || room.reservationStatus === "CHECKED_OUT";
+  const shouldLoadInvoice = isCheckedIn || room.reservationStatus === "CHECKED_OUT";
   const canCheckIn = validReservation && (room.reservationStatus === "CONFIRMED" || (!room.reservationStatus && room.occStatus === "vacant" && Boolean(room.guestName)));
   const canCancel = validReservation && ["DRAFT", "CONFIRMED"].includes(room.reservationStatus || "");
 
@@ -271,6 +271,7 @@ function RoomDrawer({ room, rooms, onClose, onRefresh, onCheckIn, onSettlementCh
   const [serviceMealPeriod, setServiceMealPeriod] = useState<"LUNCH" | "DINNER">("LUNCH");
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoiceChecked, setInvoiceChecked] = useState(false);
   const [reservationDetails, setReservationDetails] = useState<Reservation | null>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [paymentsLoaded, setPaymentsLoaded] = useState(false);
@@ -290,7 +291,8 @@ function RoomDrawer({ room, rooms, onClose, onRefresh, onCheckIn, onSettlementCh
   const canRecordService = Boolean(
     validReservation &&
     selectedService &&
-    selectedService.price > 0 &&
+    selectedService.price >= 0 &&
+    invoiceChecked && !invoice &&
     serviceQuantity >= 1 &&
     serviceQuantityAvailable &&
     busy === null &&
@@ -314,12 +316,19 @@ function RoomDrawer({ room, rooms, onClose, onRefresh, onCheckIn, onSettlementCh
     if (!validReservation) return;
     const [catalogResult, timelineResult, invoiceResult, reservationResult] = await Promise.allSettled([
       frontDeskApi.services(), frontDeskApi.timeline(reservationId),
-      hasInvoice ? frontDeskApi.invoice(reservationId) : Promise.resolve(null),
+      shouldLoadInvoice ? frontDeskApi.invoice(reservationId) : Promise.resolve(null),
       frontDeskApi.reservation(reservationId),
     ]);
     if (catalogResult.status === "fulfilled") setServices(catalogResult.value.filter(item => item.active !== false));
     if (timelineResult.status === "fulfilled") setTimeline(timelineResult.value);
     if (reservationResult.status === "fulfilled") setReservationDetails(reservationResult.value);
+    const invoiceMissing = invoiceResult.status === "rejected" && invoiceResult.reason instanceof ApiError
+      && (invoiceResult.reason.status === 404 || invoiceResult.reason.code === "INVOICE_NOT_FOUND");
+    setInvoiceChecked(invoiceResult.status === "fulfilled" || invoiceMissing);
+    if (invoiceMissing || (invoiceResult.status === "fulfilled" && !invoiceResult.value)) setInvoice(null);
+    if (invoiceResult.status === "rejected" && !invoiceMissing) {
+      setFeedback({tone:"error",text:"Không thể kiểm tra hóa đơn. Vui lòng mở lại phòng để thử lại trước khi ghi/hủy dịch vụ."});
+    }
     if (invoiceResult.status === "fulfilled" && invoiceResult.value) {
       setInvoice(invoiceResult.value);
       try {
@@ -331,11 +340,11 @@ function RoomDrawer({ room, rooms, onClose, onRefresh, onCheckIn, onSettlementCh
         if (recRes.status === "fulfilled") setReceipts(Array.isArray(recRes.value) ? recRes.value : (recRes.value as any)?.items ?? []);
       } catch {}
     }
-  }, [hasInvoice, reservationId, validReservation]);
+  }, [shouldLoadInvoice, reservationId, validReservation]);
 
   useEffect(() => {
     setFeedback(null); setOperation(null); setCheckoutStep(room.reservationStatus === "CHECKED_OUT" ? "done" : "idle"); setIssuedReceipt(null);
-    setReservationDetails(null); setServices([]); setInvoice(null); setPayments([]); setPaymentsLoaded(false); setReceipts([]);
+    setReservationDetails(null); setServices([]); setInvoice(null); setInvoiceChecked(false); setPayments([]); setPaymentsLoaded(false); setReceipts([]);
     setCancelReason("");
     keys.current = {
       service: newFrontDeskIdempotencyKey(),
@@ -379,7 +388,7 @@ function RoomDrawer({ room, rooms, onClose, onRefresh, onCheckIn, onSettlementCh
   };
 
   const addService = async () => {
-    if (!validReservation || !selectedService || !serviceQuantityAvailable || serviceQuantity < 1 || busy) return;
+    if (!canRecordService) return;
     setBusy("service"); setFeedback(null);
     try {
       await frontDeskApi.addService(reservationId, { service_id: serviceId, quantity: serviceQuantity,
@@ -582,6 +591,8 @@ function RoomDrawer({ room, rooms, onClose, onRefresh, onCheckIn, onSettlementCh
               </div>
             </div>
             <p style={{fontSize:12,color:"#64748B",padding:"12px",background:"#F8FAFC",borderRadius:8,lineHeight:1.5}}>Giá niêm yết là giá cho phần phải trả. Quyền lợi miễn phí được áp dụng trước; phần còn lại cộng vào hóa đơn phòng khi checkout.</p>
+            {invoice && <p role="note" className="mb-3 text-xs text-amber-800">Phiếu này đã lập hóa đơn: không thể thêm hoặc hủy dịch vụ.</p>}
+            {validReservation && <ServiceUsageHistory reservationId={reservationId} refreshKey={reservationDetails?.service_usages?.length} locked={!!invoice} checkingInvoice={!invoiceChecked} onChanged={()=>finishMutation("Đã hủy dịch vụ.")} />}
           </div>
         )}
         {tab==="history" && (
@@ -681,7 +692,7 @@ function RoomDrawer({ room, rooms, onClose, onRefresh, onCheckIn, onSettlementCh
           )}
         </div>
         {validReservation && isCheckedIn && checkoutStep === "idle" && (
-          <button className="frontdesk-room-drawer__secondary-action" onClick={()=>setTab("service")} disabled={busy!==null}>
+          <button className="frontdesk-room-drawer__secondary-action" onClick={()=>setTab("service")} disabled={busy!==null || !invoiceChecked || !!invoice} title={invoice ? "Đã lập hóa đơn: không thể thêm dịch vụ" : "Mở mục dịch vụ để chọn và ghi nhận"}>
             <PlusCircle size={13} /> Thêm dịch vụ
           </button>
         )}
@@ -1908,4 +1919,46 @@ export default function FrontDeskPMS({ onBack }: { onBack: () => void }) {
       </div>}
     </div>
   );
+}
+
+
+/* Dịch vụ đã ghi nhận trong chi tiết phòng. */
+type Usage = { id:number; service_name:string; quantity:number; amount:number; cancelled:boolean };
+function ServiceUsageHistory({reservationId, refreshKey, locked, checkingInvoice=false, onChanged}: {
+  reservationId:number; refreshKey?:number; locked:boolean; checkingInvoice?:boolean; onChanged:()=>Promise<void>;
+}) {
+  const [rows,setRows]=useState<Usage[]>([]);
+  const [version,setVersion]=useState(0);
+  const [busy,setBusy]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  useEffect(()=>{
+    let active=true; setError(""); setRows([]); setLoading(true);
+    apiClient.request<Usage[]>(`/api/service-usages?reservation_id=${reservationId}`)
+      .then(data=>{if(active)setRows(data);})
+      .catch(e=>{if(active)setError(apiErrorMessage(e,"Không thể tải dịch vụ đã ghi."));})
+      .finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  },[reservationId,refreshKey,version]);
+  async function cancel(id:number) {
+    if(busy||locked||checkingInvoice)return;
+    setBusy(true);setError("");
+    try {
+      await apiClient.request(`/api/service-usages/${id}`,{method:"DELETE"});
+      setVersion(v=>v+1);await onChanged();
+    } catch(e) {setError(apiErrorMessage(e,"Không thể hủy dịch vụ."));}
+    finally {setBusy(false);}
+  }
+  return <section aria-label="Dịch vụ lễ tân đã ghi" className="mt-4 rounded-lg border border-slate-200 p-3 text-xs">
+    <h3 className="mb-2 font-semibold">Dịch vụ đã ghi nhận</h3>
+    {error&&<p role="alert" className="mb-2 text-red-700">{error} <button onClick={()=>setVersion(v=>v+1)}>Tải lại</button></p>}
+    {loading&&<p>Đang tải dịch vụ…</p>}
+    {locked&&<p className="mb-2 text-slate-500">Đã có hóa đơn: không thể hủy dịch vụ.</p>}
+    {checkingInvoice&&<p className="mb-2 text-slate-500">Chưa xác nhận được hóa đơn; tạm khóa hủy dịch vụ.</p>}
+    {rows.map(row=><div key={row.id} className="flex items-center justify-between gap-3 border-t border-slate-100 py-2">
+      <span>{row.service_name} × {row.quantity} · {row.amount.toLocaleString("vi-VN")} ₫</span>
+      {row.cancelled?<span>Đã hủy</span>:<button disabled={busy||locked||checkingInvoice} className="rounded border border-slate-300 px-2 py-1 disabled:opacity-50" onClick={()=>void cancel(row.id)}>Hủy dịch vụ</button>}
+    </div>)}
+    {!loading&&!error&&!rows.length&&<p>Chưa có dịch vụ.</p>}
+  </section>;
 }

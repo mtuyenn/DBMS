@@ -2,20 +2,25 @@
 
 These owner decisions apply even when a session has no prior conversation context.
 
-1. **Hard rule — exactly six SQL Server Flyway files.** The owner's later explicit
-   instruction on 08/10/2026 supersedes the former five-file rule: keep the demo
-   baseline in these files only, with all database triggers consolidated in V6:
+1. **SQL Server/Flyway:** Maintain the existing versioned migration sequence
+   `V1`–`V8` in `backend/src/main/resources/db/migration`; V7 and V8 are Flyway
+   migrations too. Each file owns the following objects or changes:
    - `V1__baseline_schema.sql`: tables, columns, constraints and baseline seeds.
    - `V2__indexes.sql`: standalone indexes.
    - `V3__functions.sql`: SQL functions.
    - `V4__views.sql`: read-model views.
    - `V5__stored_procedures.sql`: stored procedures and business transactions.
    - `V6__triggers.sql`: the repository's database integrity and business-rule triggers.
-  Put each change into its owning file and keep one final definition per object,
-   organized with clear section headings. The existing demo reset script remains
-   data-only; it is not a place for schema/object definitions.
-   **Never repair checksums or edit Flyway history to force a pass.** Do not rebuild
-   a database other than the local demo `QLKS` without owner authorization.
+   - `V7__backup_restore.sql`: installs the backup procedure; running a backup is
+     an explicit SQL Server operation, not data generated during migration.
+   - `V8__phan_quyen.sql`: SQL Server roles and permissions.
+   Put each change into its owning file and keep one final definition per object,
+   organized with clear section headings. Add a new Flyway version only after the
+   owner explicitly agrees; do not create extra versions or seed demo data just
+   to manufacture migration activity. Use V1 for baseline seeds, and keep the
+   existing demo reset script data-only. Never edit an already-applied migration,
+   repair checksums, or alter Flyway history to force a pass. Do not rebuild a
+   database other than the local demo `QLKS` without owner authorization.
    For DAO reads, querying one table directly is fine; reads that join multiple
    tables must go through a view in V4.
 2. The two `spring.mail.username` and `spring.mail.password` lines in
@@ -30,6 +35,11 @@ These owner decisions apply even when a session has no prior conversation contex
 
 
 ## Working rules
+
+- **Use the existing owning files first.** When extending an existing feature,
+  update its current backend/frontend files and corresponding tests. Keep related
+  code together with clear section headings; add a file only when no suitable
+  existing file owns that responsibility.
 
 - **Do not publish this project to `web-hotel-mis`.** This working tree is being
   dismantled for the DBMS report. Never commit or push any content from this

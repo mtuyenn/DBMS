@@ -46,4 +46,16 @@ public class FinancialTransactionQueryController {
             @RequestParam(name = "page", defaultValue = "0") int page, @RequestParam(name = "size", defaultValue = "20") int size) {
         return receipts.search(invoiceId, method, issuedBy, from, to, page, size);
     }
+
+    @GetMapping("/revenue-summary")
+    @PreAuthorize("@departmentAccess.allows(authentication, 'FINANCE_READ')")
+    public PaymentTransactionDtos.RevenueSummary revenueSummary() {
+        return payments.revenueSummary();
+    }
+
+    @GetMapping("/unissued-receipts")
+    @PreAuthorize("@departmentAccess.allows(authentication, 'FINANCE_READ')")
+    public java.util.List<ReceiptDtos.UnissuedTransaction> unissuedReceipts() {
+        return receipts.unissuedTransactions();
+    }
 }

@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -104,5 +105,19 @@ public class PaymentDatabase {
                         PaymentTransaction.TransactionStatus.COMPLETED, null, r.getTimestamp(5).toLocalDateTime(), null,
                         r.getLong(6), r.getBigDecimal(7)), args.toArray());
         return new PaymentTransactionDtos.LedgerPageResponse(items, p, s, total, (int) Math.ceil((double) total / s), methodCounts);
+    }
+
+    public PaymentTransactionDtos.RevenueSummary revenueSummary(LocalDate today) {
+        List<PaymentTransactionDtos.DailyRevenue> daily = jdbc.query(
+                "SELECT ngay, doanhThu FROM dbo.vwDoanhThuTheoNgay ORDER BY ngay DESC",
+                (r, n) -> new PaymentTransactionDtos.DailyRevenue(r.getDate(1).toLocalDate(), r.getBigDecimal(2)));
+        List<PaymentTransactionDtos.MethodRevenue> byMethod = jdbc.query(
+                "SELECT phuongThuc, doanhThu FROM dbo.vwDoanhThuTheoPhuongThuc",
+                (r, n) -> new PaymentTransactionDtos.MethodRevenue(r.getString(1), r.getBigDecimal(2)));
+        BigDecimal total = byMethod.stream().map(PaymentTransactionDtos.MethodRevenue::revenue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal todayRev = daily.stream().filter(d -> d.date().equals(today)).findFirst()
+                .map(PaymentTransactionDtos.DailyRevenue::revenue).orElse(BigDecimal.ZERO);
+        return new PaymentTransactionDtos.RevenueSummary(total, todayRev, daily, byMethod);
     }
 }

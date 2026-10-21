@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FrontDeskPMS from "./FrontDeskPMS";
 import { authApi } from "../../shared/api/auth";
 import { frontDeskApi } from "../../shared/api/frontDesk";
-import { ApiError } from "../../shared/api/client";
+import { ApiError, apiClient } from "../../shared/api/client";
 
 describe("FrontDeskPMS Reception Interface", () => {
   const onBack = vi.fn();
@@ -43,6 +43,7 @@ describe("FrontDeskPMS Reception Interface", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(apiClient, "request").mockResolvedValue([]);
     vi.spyOn(authApi, "employeeProfile").mockResolvedValue({
       employee_id: "EMP001",
       full_name: "Nguyễn Văn Lễ Tân",
@@ -272,6 +273,7 @@ describe("FrontDeskPMS Reception Interface", () => {
     render(<FrontDeskPMS onBack={onBack} />);
     fireEvent.click(screen.getByRole("button", { name: /Sơ đồ phòng/i }));
     await screen.findByRole("heading", { name: "Sơ đồ phòng" });
+    await screen.findByLabelText("Chi tiết phòng 203");
     fireEvent.click(await screen.findByText("104", { exact: true }));
 
     const drawer = await screen.findByLabelText("Chi tiết phòng 104");
@@ -284,6 +286,7 @@ describe("FrontDeskPMS Reception Interface", () => {
     render(<FrontDeskPMS onBack={onBack} />);
     fireEvent.click(screen.getByRole("button", { name: /Sơ đồ phòng/i }));
     await screen.findByRole("heading", { name: "Sơ đồ phòng" });
+    await screen.findByLabelText("Chi tiết phòng 203");
     fireEvent.click(await screen.findByText("102", { exact: true }));
 
     const drawer = await screen.findByLabelText("Chi tiết phòng 102");
@@ -293,11 +296,13 @@ describe("FrontDeskPMS Reception Interface", () => {
   });
 
   it("adds a minibar service to the checked-in room and its reservation", async () => {
+    vi.mocked(frontDeskApi.invoice).mockRejectedValue(new ApiError(404,{code:"INVOICE_NOT_FOUND",message:"Chưa có hóa đơn"}));
     const addService = vi.spyOn(frontDeskApi, "addService").mockResolvedValue({} as any);
     render(<FrontDeskPMS onBack={onBack} />);
     fireEvent.click(screen.getByRole("button", { name: /Sơ đồ phòng/i }));
     await screen.findByRole("heading", { name: "Sơ đồ phòng" });
     const drawer = await screen.findByLabelText("Chi tiết phòng 203");
+    await waitFor(()=>expect((within(drawer).getByRole("button", { name: /Thêm dịch vụ/i }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(within(drawer).getByRole("button", { name: /Thêm dịch vụ/i }));
     await within(drawer).findByRole("option", { name: /Coca Cola/ });
     fireEvent.change(within(drawer).getByLabelText("Dịch vụ khách đã sử dụng"), { target: { value: "1" } });
@@ -307,6 +312,34 @@ describe("FrontDeskPMS Reception Interface", () => {
     await waitFor(() => expect(addService).toHaveBeenCalledWith(1001, {
       service_id: "1", quantity: 2, room_id: "203",
     }, expect.any(String)));
+  });
+
+  it("locks adding services only when a real invoice exists", async () => {
+    vi.mocked(apiClient.request).mockResolvedValue([{id:11,service_name:"Giặt ủi",quantity:1,amount:90000,cancelled:false}]);
+    render(<FrontDeskPMS onBack={onBack} />);
+    fireEvent.click(screen.getByRole("button", { name: /Sơ đồ phòng/i }));
+    const drawer=await screen.findByLabelText("Chi tiết phòng 203");
+    await waitFor(()=>expect(frontDeskApi.invoice).toHaveBeenCalledWith(1001));
+    fireEvent.click(within(drawer).getByRole("button",{name:"Dịch vụ"}));
+    expect(await within(drawer).findByText("Phiếu này đã lập hóa đơn: không thể thêm hoặc hủy dịch vụ.")).toBeTruthy();
+    fireEvent.change(within(drawer).getByLabelText("Dịch vụ khách đã sử dụng"),{target:{value:"1"}});
+    expect((within(drawer).getByRole("button",{name:"Ghi vào hóa đơn"}) as HTMLButtonElement).disabled).toBe(true);
+    expect((within(drawer).getByRole("button",{name:"Thêm dịch vụ"}) as HTMLButtonElement).disabled).toBe(true);
+    expect((await within(drawer).findByRole("button",{name:"Hủy dịch vụ"}) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("does not label an occupied room as invoiced after an invoice-not-found response", async () => {
+    vi.mocked(frontDeskApi.invoice).mockRejectedValue(new ApiError(404,{code:"INVOICE_NOT_FOUND",message:"Chưa có hóa đơn"}));
+    vi.mocked(apiClient.request).mockResolvedValue([{id:11,service_name:"Giặt ủi",quantity:1,amount:90000,cancelled:false}]);
+    render(<FrontDeskPMS onBack={onBack} />);
+    fireEvent.click(screen.getByRole("button", { name: /Sơ đồ phòng/i }));
+    const drawer=await screen.findByLabelText("Chi tiết phòng 203");
+    fireEvent.click(within(drawer).getByRole("button",{name:"Dịch vụ"}));
+    const cancel=await within(drawer).findByRole("button",{name:"Hủy dịch vụ"});
+    await waitFor(()=>expect((cancel as HTMLButtonElement).disabled).toBe(false));
+    expect(within(drawer).queryByText("Đã có hóa đơn: không thể hủy dịch vụ.")).toBeNull();
+    fireEvent.click(cancel);
+    await waitFor(()=>expect(apiClient.request).toHaveBeenCalledWith("/api/service-usages/11",{method:"DELETE"}));
   });
 
   it("never attaches a checked-in guest action to a room that is being cleaned", async () => {

@@ -1,7 +1,7 @@
 import { ApiError, apiClient } from "./client";
-import type { Invoice, LedgerPayment, Page, Payment, PaymentPage, PaymentCreateRequest, PaymentQuery, Receipt, ReceiptQuery } from "../types/hotelOperations";
+import type { Invoice, LedgerPayment, Page, Payment, PaymentPage, PaymentCreateRequest, PaymentQuery, Receipt, ReceiptQuery, RevenueSummary, UnissuedTransaction } from "../types/hotelOperations";
 
-const key = () => `FIN-${(globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^a-zA-Z0-9]/g, "").slice(0, 32)}`;
+const key = () => `FIN-${(globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^a-zA-Z0-9]/g, "").slice(0, 31)}`;
 const query = (params: object) => { const value = Object.entries(params).filter(([, item]) => item !== undefined && item !== "").map(([name, item]) => [name, String(item)] as [string, string]); const text = new URLSearchParams(value).toString(); return text ? `?${text}` : ""; };
 const requiredKey = (value: string) => { const normalized = value?.trim(); if (!normalized || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,34}$/.test(normalized)) throw new Error("Mutation requires a valid Idempotency-Key"); return normalized; };
 const mutation = <T>(path: string, body: unknown, idempotencyKey: string) => apiClient.request<T>(path, { method: "POST", body, idempotencyKey: requiredKey(idempotencyKey) });
@@ -19,5 +19,7 @@ export const financeApi = {
   invoiceReceipts: (invoiceId: number) => apiClient.request<Receipt[] | Page<Receipt>>(`/api/invoices/${invoiceId}/receipts`),
   recordPayment: (invoiceId: number, body: PaymentCreateRequest, idempotencyKey: string) => mutation<Payment>(`/api/invoices/${invoiceId}/payments`, body, idempotencyKey),
   issueReceipt: (invoiceId: number, body: { receipt_number: string; amount: number; method: Receipt["method"] }, idempotencyKey: string) => mutation<Receipt>(`/api/invoices/${invoiceId}/receipts`, body, idempotencyKey),
+  revenueSummary: () => apiClient.request<RevenueSummary>("/api/finance/revenue-summary"),
+  unissuedReceipts: () => apiClient.request<UnissuedTransaction[]>("/api/finance/unissued-receipts"),
 };
 export const newFinanceIdempotencyKey = key;

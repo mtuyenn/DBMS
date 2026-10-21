@@ -14,7 +14,7 @@ $env:JWT_SECRET = ([guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString(
 mvn spring-boot:run
 ```
 
-Flyway cài V1–V6 vào database trống. API không tự xóa/reset database. Bốn tài khoản mẫu dùng mật khẩu `hotel123`: `FRONTDESK`, `MANAGER`, `HOUSEKEEP`, `ACCOUNTING`.
+Flyway cài V1–V8 vào database trống. V7 cài procedure backup; tạo file `.bak` là thao tác chủ động qua `EXEC dbo.uspSaoLuuQLKS;`. API không tự xóa/reset database. Bốn tài khoản mẫu dùng mật khẩu `hotel123`: `FRONTDESK`, `MANAGER`, `HOUSEKEEP`, `ACCOUNTING`.
 
 ## Kiểm tra
 
@@ -26,4 +26,4 @@ Integration test chạy khi có `HOTEL_TEST_DB_URL` trỏ đến database SQL Se
 
 ## SQL
 
-Giữ đúng sáu migration trong `src/main/resources/db/migration`: V1 schema/seed, V2 index, V3 function, V4 view, V5 procedure, V6 trigger. Xem [chi tiết migration](src/main/resources/db/migration/README.md). Không dùng Flyway repair hoặc sửa lịch sử migration để vượt checksum.
+Flyway áp dụng V1–V8 trong `src/main/resources/db/migration`. V7 cài procedure backup; khi cần file `.bak`, gọi `EXEC dbo.uspSaoLuuQLKS;` thủ công trên database `QLKS`. V8 tạo role và quyền SQL Server. Xem [chi tiết SQL](src/main/resources/db/migration/README.md). Không dùng Flyway repair hoặc sửa lịch sử migration để vượt checksum.

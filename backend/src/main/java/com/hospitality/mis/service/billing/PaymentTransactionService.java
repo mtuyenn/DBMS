@@ -70,4 +70,8 @@ public class PaymentTransactionService {
         var auth=SecurityContextHolder.getContext().getAuthentication();
         return auth!=null&&auth.getAuthorities().stream().anyMatch(a->Set.of("ROLE_ADMIN","ROLE_DIRECTOR","ROLE_MANAGER","ROLE_ACCOUNTING","ROLE_FRONT_DESK").contains(a.getAuthority()));
     }
+    @Transactional(readOnly=true)
+    public PaymentTransactionDtos.RevenueSummary revenueSummary() {
+        return database.revenueSummary(LocalDate.now(clock));
+    }
 }

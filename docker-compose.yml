@@ -14,6 +14,9 @@ services:
       - "1434:1433"
     volumes:
       - hotel-standalone-sqlserver:/var/opt/mssql
+      - type: bind
+        source: C:/Backup
+        target: /var/opt/mssql/backup
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" -b -o /dev/null"]
       interval: 10s

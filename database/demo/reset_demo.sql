@@ -2,7 +2,7 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 IF EXISTS (SELECT 1 FROM dbo.HoaDon WHERE trangThai=N'Đã thanh toán')
-    THROW 50001, N'Demo có hóa đơn đã thanh toán. Muốn xóa toàn bộ, dựng lại riêng database demo và chạy Flyway V1–V6.', 1;
+    THROW 50001, N'Demo có hóa đơn đã thanh toán. Muốn xóa toàn bộ, dựng lại riêng database demo và chạy Flyway V1–V8.', 1;
 BEGIN TRANSACTION;
 
 DELETE FROM dbo.BienLai;
