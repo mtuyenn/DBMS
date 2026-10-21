@@ -28,7 +28,7 @@ export function ServicesPanel(){
   <p className="mb-4 text-slate-500">Tổng hợp theo từng lượt lưu trú. Số lượt ghi, tổng số lượng và tổng tiền chỉ tính dịch vụ chưa hủy. Lễ tân thực hiện ghi nhận và hủy dịch vụ.</p>
   <button className={`${button} mb-3`} disabled={loading} onClick={()=>setVersion(v=>v+1)}>Làm mới danh sách</button>
   <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-   <table className="w-full text-left"><thead><tr>{["Phòng","Khách lưu trú","Phiếu đặt","Số lượt ghi dịch vụ","Tổng số lượng","Tổng tiền dịch vụ", ""].map((h,i)=><th key={i} className="p-3">{h}</th>)}</tr></thead>
+   <table className="w-full text-left"><thead><tr>{["Phòng","Khách lưu trú","Phiếu đặt","Số dịch vụ đã dùng","Tổng số lượng","Tổng tiền dịch vụ", ""].map((h,i)=><th key={i} className="p-3">{h}</th>)}</tr></thead>
     <tbody>{summaries.map(row=><tr key={row.reservation_id} className="border-t border-slate-100">
      <td className="p-3">{row.room_ids.join(", ")}</td><td>{row.guest_name}</td><td>#{row.reservation_id}</td><td>{row.service_count}</td><td>{row.total_quantity}</td><td>{row.total_amount.toLocaleString("vi-VN")} ₫</td>
      <td><button className={button} aria-label={`Xem chi tiết phiếu #${row.reservation_id}`} onClick={()=>setSelected(row.reservation_id)}>Xem chi tiết</button></td>
