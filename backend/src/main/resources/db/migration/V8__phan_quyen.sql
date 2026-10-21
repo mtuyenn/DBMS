@@ -37,6 +37,14 @@ GRANT SELECT ON dbo.HoaDon TO role_LeTan;
 GRANT SELECT ON dbo.GiaoDichThanhToan TO role_LeTan;
 GRANT SELECT ON dbo.SuDungDichVu TO role_LeTan;
 
+-- Le tan duoc sua thong tin khach, khong sua ma khach.
+GRANT UPDATE (hoVaTen, soDienThoai, email, soGiayToTuyThan)
+    ON dbo.KhachLuuTru TO role_LeTan;
+
+-- Cho phep ung dung ghi nhat ky thao tac cua nhan vien.
+GRANT SELECT ON dbo.NhanVien TO role_LeTan;
+GRANT INSERT ON dbo.NhatKyKiemSoat TO role_LeTan;
+
 GRANT SELECT ON dbo.vwPhongQuangCao TO role_LeTan;
 GRANT SELECT ON dbo.vwPhongSoDo TO role_LeTan;
 GRANT SELECT ON dbo.vwDichVuQuangCao TO role_LeTan;

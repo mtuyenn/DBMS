@@ -15,27 +15,15 @@ CREATE INDEX IX_HoaDon_ThoiDiem_TrangThai ON dbo.HoaDon(thoiDiemLap, trangThai);
 
 CREATE INDEX IX_GiaoDich_HoaDon_ThoiDiem ON dbo.GiaoDichThanhToan(maHoaDon, thoiDiem);
 
--- Loc danh sach dat phong theo trang thai va ghep voi khach/phong.
-CREATE INDEX IX_PhieuDatPhong_TrangThai_Phieu
-ON dbo.PhieuDatPhong(trangThai, maPhieuDatPhong)
-INCLUDE (maKhachLuuTru, maNhanVien, thoiDiemDat);
+CREATE NONCLUSTERED INDEX IX_PhieuDatPhong_TrangThai 
+ON dbo.PhieuDatPhong(trangThai);
 GO
 
--- Tim nhanh cac phong sap den theo khoang thoi gian nhan phong.
-CREATE INDEX IX_ChiTietDatPhong_ThoiDiemNhan_Phieu
-ON dbo.ChiTietDatPhong(thoiDiemNhanPhong, maPhieuDatPhong)
-INCLUDE (thoiDiemTraPhong, maPhong, giaTheoNgayDaChot);
+-- Tim nhanh theo thoi diem nhan phong.
+CREATE INDEX IX_ChiTietDatPhong_ThoiDiemNhan ON dbo.ChiTietDatPhong(thoiDiemNhanPhong);
 GO
 
-CREATE INDEX IX_ChiTietDatPhong_ThoiDiemTra_Phieu
-ON dbo.ChiTietDatPhong(thoiDiemTraPhong, maPhieuDatPhong)
-INCLUDE (thoiDiemNhanPhong, maPhong, giaTheoNgayDaChot);
-GO
-
-CREATE INDEX IX_ChiTietDatPhong_ThoiDiemNhanPhong
-ON dbo.ChiTietDatPhong(thoiDiemNhanPhong);
-GO
-
-CREATE INDEX IX_ChiTietDatPhong_ThoiDiemTraPhong
+-- Tim nhanh theo thoi diem tra phong.
+CREATE INDEX IX_ChiTietDatPhong_ThoiDiemTra
 ON dbo.ChiTietDatPhong(thoiDiemTraPhong);
 GO
