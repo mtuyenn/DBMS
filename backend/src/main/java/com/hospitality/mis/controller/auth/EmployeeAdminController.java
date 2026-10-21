@@ -36,4 +36,8 @@ public class EmployeeAdminController {
                                            @Valid @RequestBody EmployeeAdminDtos.RoleRequest request) {
         return service.setRole(employeeId, request.role());
     }
+    @DeleteMapping("/{employeeId}")
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    @PreAuthorize("@departmentAccess.allows(authentication, 'EMPLOYEE_PROVISION') && @employeeService.canDeleteEmployee(authentication, #employeeId)")
+    public void delete(@PathVariable String employeeId) { service.deactivate(employeeId); }
 }
