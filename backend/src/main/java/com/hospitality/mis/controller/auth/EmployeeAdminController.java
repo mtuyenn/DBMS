@@ -1,0 +1,39 @@
+package com.hospitality.mis.controller.auth;
+import com.hospitality.mis.dto.auth.EmployeeAdminDtos;
+import com.hospitality.mis.service.identity.EmployeeService;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+@RestController
+@RequestMapping("/api/auth/employees")
+public class EmployeeAdminController {
+    private final EmployeeService service;
+    public EmployeeAdminController(EmployeeService service) { this.service = service; }
+    @GetMapping
+    @PreAuthorize("@departmentAccess.allows(authentication, 'EMPLOYEE_READ')")
+    public List<EmployeeAdminDtos.Response> list(@RequestParam(name = "includeInactive", defaultValue = "false") boolean includeInactive) {
+        return service.list(includeInactive);
+    }
+    @GetMapping("/{employeeId}")
+    @PreAuthorize("@departmentAccess.allows(authentication, 'EMPLOYEE_READ')")
+    public EmployeeAdminDtos.Response detail(@PathVariable String employeeId) { return service.detail(employeeId); }
+    @PostMapping @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.CREATED)
+    @PreAuthorize("@departmentAccess.allows(authentication, 'EMPLOYEE_PROVISION')")
+    public com.hospitality.mis.dto.auth.AuthDtos.EmployeeResponse create(
+            @Valid @RequestBody com.hospitality.mis.dto.auth.AuthDtos.ProvisionRequest request) {
+        var employee=service.provision(request.employeeId(),request.fullName(),request.password(),request.role(),request.phone(),request.address());
+        return new com.hospitality.mis.dto.auth.AuthDtos.EmployeeResponse(employee.employeeId(),employee.fullName(),employee.role(),employee.phone(),employee.address());
+    }
+    @PatchMapping("/{employeeId}/status")
+    @PreAuthorize("@departmentAccess.allows(authentication, 'EMPLOYEE_PROVISION') && @employeeService.canResetEmployee(authentication, #employeeId)")
+    public EmployeeAdminDtos.Response status(@PathVariable String employeeId, @Valid @RequestBody EmployeeAdminDtos.StatusRequest request) {
+        return service.setEnabled(employeeId, request.enabled());
+    }
+    @PatchMapping("/{employeeId}/role")
+    @PreAuthorize("@departmentAccess.allows(authentication, 'EMPLOYEE_PROVISION') && @employeeService.canManageEmployeeRole(authentication, #employeeId, #request.role())")
+    public EmployeeAdminDtos.Response role(@PathVariable String employeeId,
+                                           @Valid @RequestBody EmployeeAdminDtos.RoleRequest request) {
+        return service.setRole(employeeId, request.role());
+    }
+}

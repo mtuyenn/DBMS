@@ -1,0 +1,33 @@
+# Java / Maven
+target/
+**/target/
+*.class
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+*.egg-info/
+
+# Frontend
+node_modules/
+dist/
+.vite/
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+/.github/modernize/
+.DS_Store
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+*.pem
+*.key
+
+# Local data
+*.log
+coverage/
