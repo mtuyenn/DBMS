@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CalendarDays, ChevronDown, FileText, LogOut, Menu, RefreshCcw, Search, Wallet, X, type LucideIcon } from "lucide-react";
+import { BarChart3, CalendarDays, ChevronDown, FileText, LogOut, Menu, Receipt, RefreshCcw, Search, Wallet, X, type LucideIcon } from "lucide-react";
 import { EmployeeProfileDropdown } from "../../shared/components/EmployeeProfileDropdown";
 import type { EmployeeProfileDto } from "../../shared/types/api";
 import { employeeRoleLabel } from "../../shared/types/api";
 import "./accountingWorkspace.css";
 
-export type AccountingPage = "ledger" | "invoices";
+export type AccountingPage = "dashboard" | "invoices" | "receipts" | "ledger";
 interface AccountingMetric { label: string; val: string; sub: string; Icon: LucideIcon; iconBg: string; iconColor: string; }
 const pages = [
-  { id:"invoices",label:"Hóa đơn & biên lai",description:"Tra hóa đơn, thu tiền còn lại và in biên lai.",Icon:FileText },
+  { id: "dashboard", label: "Báo cáo doanh thu", description: "Thống kê doanh thu theo ngày và theo từng phương thức thanh toán.", Icon: BarChart3 },
+  { id: "invoices", label: "Hóa đơn thanh toán", description: "Tra hóa đơn, thu tiền còn lại và in biên lai.", Icon: FileText },
+  { id: "receipts", label: "Quản lý biên lai", description: "Tra cứu sổ biên lai và đối soát giao dịch chưa lập biên lai.", Icon: Receipt },
   { id: "ledger", label: "Sổ giao dịch", description: "Tra cứu và xuất các khoản thanh toán đã ghi nhận theo ngày.", Icon: Wallet },
 ] satisfies { id: AccountingPage; label: string; description: string; Icon: LucideIcon }[];
 

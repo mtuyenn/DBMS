@@ -61,4 +61,10 @@ public class ReceiptDatabase {
         return new ReceiptDtos.Response(id, "BIEN-LAI-" + id, invoice, amount,
                 methods.convertToEntityAttribute(method), at, "—");
     }
+
+    public List<ReceiptDtos.UnissuedTransaction> unissuedTransactions() {
+        return jdbc.query("SELECT maGiaoDich, maHoaDon, soTien, phuongThuc FROM dbo.vwGiaoDichChuaLapBienLai ORDER BY maGiaoDich DESC",
+                (r, n) -> new ReceiptDtos.UnissuedTransaction(r.getLong(1), r.getLong(2), r.getBigDecimal(3),
+                        methods.convertToEntityAttribute(r.getString(4))));
+    }
 }

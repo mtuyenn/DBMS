@@ -1,4 +1,6 @@
 import InvoiceOperations from "./InvoiceOperations";
+import RevenueDashboard from "./RevenueDashboard";
+import ReceiptOperations from "./ReceiptOperations";
 import { useEffect, useState } from "react";
 import { financeApi } from "../../shared/api/finance";
 import { authApi } from "../../shared/api/auth";
@@ -335,7 +337,9 @@ export default function AccountingStation({ onBack }: { onBack: () => void }) {
         {dataLoading && <p role="status">Đang cập nhật dữ liệu kế toán…</p>}
       </>}
     >
+      {mainTab === "dashboard" && <RevenueDashboard refresh={refresh}/>}
       {mainTab === "invoices" && <InvoiceOperations refresh={refresh} search={globalSearch} onChanged={refreshData}/>}
+      {mainTab === "receipts" && <ReceiptOperations refresh={refresh} search={globalSearch} onChanged={refreshData}/>}
       {mainTab === "ledger" && <LedgerPanel fillHeight date={selectedDate} onDateChange={setSelectedDate} search={globalSearch} onSearchChange={setGlobalSearch} refresh={refresh}/>}
     </AccountingWorkspace>
   );

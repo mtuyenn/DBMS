@@ -97,4 +97,10 @@ describe("Accounting server pagination",()=>{
     fireEvent.click(screen.getByRole("button",{name:"Ví MoMo 1"}));
     await waitFor(()=>expect(payments).toHaveBeenLastCalledWith(expect.objectContaining({method:"MOMO"})));
   });
+  it("keeps finance idempotency keys within the backend limit", async () => {
+    const { newFinanceIdempotencyKey } = await import("../../shared/api/finance");
+    const k = newFinanceIdempotencyKey();
+    expect(k).toMatch(/^FIN-[a-zA-Z0-9]{1,31}$/);
+    expect(k.length).toBeLessThanOrEqual(35);
+  });
 });

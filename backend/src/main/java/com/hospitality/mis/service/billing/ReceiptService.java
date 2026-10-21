@@ -50,4 +50,8 @@ public class ReceiptService {
         boolean global=auth!=null&&auth.getAuthorities().stream().map(x->x.getAuthority()).anyMatch(x->Set.of("ROLE_ADMIN","ROLE_DIRECTOR","ROLE_MANAGER","ROLE_ACCOUNTING","ROLE_FRONT_DESK").contains(x));
         if(!global&&!Objects.equals(actor,scope.employeeId()))throw new AccessDeniedException("Không được phép thao tác ngoài phạm vi đặt phòng");
     }
+    @Transactional(readOnly=true)
+    public List<ReceiptDtos.UnissuedTransaction> unissuedTransactions() {
+        return database.unissuedTransactions();
+    }
 }

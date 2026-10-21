@@ -45,3 +45,7 @@ export interface PaymentQuery { invoice_id?: number; method?: PaymentMethod; typ
 export interface ReceiptQuery { invoice_id?: number; method?: PaymentMethod; issued_by?: string; from?: string; to?: string; page?: number; size?: number; }
 export interface PaymentCreateRequest { amount: number; method: PaymentMethod; type: PaymentTransactionType; reference?: string | null; }
 export interface LedgerQuery { entry_type?: string; from?: string; to?: string; page?: number; size?: number; }
+export interface DailyRevenue { date: string; revenue: number; }
+export interface MethodRevenue { method: string; revenue: number; }
+export interface RevenueSummary { total_revenue: number; today_revenue: number; daily: DailyRevenue[]; by_method: MethodRevenue[]; }
+export interface UnissuedTransaction { transaction_id: number; invoice_id: number; amount: number; method: PaymentMethod; }
