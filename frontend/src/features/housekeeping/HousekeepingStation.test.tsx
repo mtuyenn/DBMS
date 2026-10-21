@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { authApi } from "../../shared/api/auth";
 import { housekeepingTechnicalApi } from "../../shared/api/housekeepingTechnical";
@@ -70,6 +70,28 @@ describe("HousekeepingStation with the existing room status board", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Bảng trạng thái phòng" }));
     expect(screen.getByText("101", { exact: true })).toBeTruthy();
     expect(screen.queryByText("202", { exact: true })).toBeNull();
+  });
+
+  it("labels ready rooms as vacant and hides unsupported checklist and minibar controls", async () => {
+    render(<HousekeepingStation onBack={onBack} />);
+    await screen.findByText("P.201", { exact: true });
+    expect(screen.getAllByText("Phòng trống").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Checklist:|Đang thực hiện checklist/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Bảng trạng thái phòng" }));
+    fireEvent.click(await screen.findByText("201", { exact: true }));
+    expect(screen.getByText("Phòng trống, đã sẵn sàng đón khách.")).toBeTruthy();
+    expect(screen.queryByText(/Kiểm kê minibar|Checklist đồ vải|Minibar:/)).toBeNull();
+    expect(screen.queryByRole("button", {name:"Hoàn tất vệ sinh & Bàn giao"})).toBeNull();
+  });
+
+  it("shows occupied room numbers on the overview without cleaning actions", async () => {
+    render(<HousekeepingStation onBack={onBack} />);
+    const section = await screen.findByRole("region", { name: "Phòng đang có khách" });
+    expect(await within(section).findByText("Phòng 202")).toBeTruthy();
+    expect(within(section).getByText("Tầng 2 · Standard")).toBeTruthy();
+    expect(within(section).queryByRole("button")).toBeNull();
+    fireEvent.change(screen.getByPlaceholderText("Tìm phòng, ghi chú..."), { target: { value: "101" } });
+    expect(within(section).queryByText("Phòng 202")).toBeNull();
   });
 
   it("renders a real empty state when the room API returns no rooms", async () => {

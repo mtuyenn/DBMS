@@ -61,7 +61,7 @@ public final class VietnameseEnumConverters {
         public ReservationStatusConverter() { mapping = new EnumMapping<>(ReservationStatus.class,
                 value(ReservationStatus.DRAFT, "Bản nháp"), value(ReservationStatus.PENDING_PAYMENT, "Chờ thanh toán"),
                 value(ReservationStatus.DEPOSIT_PAID, "Đã thanh toán cọc"),
-                value(ReservationStatus.CONFIRMED, "Đã xác nhận"), value(ReservationStatus.CHECKED_IN, "Đã nhận phòng"),
+                value(ReservationStatus.CONFIRMED, "Đã xác nhận"), value(ReservationStatus.CHECKED_IN, "Đang ở"),
                 value(ReservationStatus.CHECKED_OUT, "Đã trả phòng"), value(ReservationStatus.CANCELLED, "Đã hủy"),
                 value(ReservationStatus.NO_SHOW, "Không đến")); }
         public String convertToDatabaseColumn(ReservationStatus value) { return mapping.convertToDatabaseColumn(value); }

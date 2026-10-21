@@ -8,7 +8,7 @@ import { apiErrorMessage } from "../../shared/api/client";
 import { employeeRoleLabel } from "../../shared/types/api";
 import type { EmployeeProfileDto } from "../../shared/types/api";
 import { EmployeeProfileDropdown } from "../../shared/components/EmployeeProfileDropdown";
-import { Home, LayoutGrid, Search, ChevronDown, X, Clock, AlertTriangle, CheckCircle2, Minus, Plus, BedDouble, Sparkles, LogOut, CheckSquare, Square, MoreHorizontal, RefreshCcw, Wine } from "lucide-react";
+import { Home, LayoutGrid, Search, ChevronDown, X, Clock, AlertTriangle, CheckCircle2, BedDouble, Sparkles, LogOut, MoreHorizontal, RefreshCcw, Wine } from "lucide-react";
 
 /* ══════════════════════════════════════════════════════════
    TYPES
@@ -25,12 +25,11 @@ const roomTypeLabel = (type: string) => ({
 const STATUS_CFG = {
   "to-clean":   { label:"Cần dọn",       dot:"#F59E0B", bg:"#FEF9C3", text:"#92400E" },
   "in-progress":{ label:"Đang vệ sinh",  dot:"#3B82F6", bg:"#DBEAFE", text:"#1D4ED8" },
-  "inspecting": { label:"Đang kiểm tra", dot:"#8B5CF6", bg:"#EDE9FE", text:"#6D28D9" },
   "ready":      { label:"Sẵn sàng",      dot:"#16A34A", bg:"#DCFCE7", text:"#166534" },
 };
 const SUB_CFG = {
   "checkout-dirty":{ label:"Phòng trả khách cần dọn", bg:"#FEF3C7", text:"#92400E" },
-  "stayover":      { label:"Khách đang ở",        bg:"#F1F5F9", text:"#475569" },
+  "vacant":        { label:"Phòng trống",          bg:"#F1F5F9", text:"#475569" },
   "vip-arrival":   { label:"Khách VIP sắp đến",     bg:"#DCFCE7", text:"#166534" },
   "maintenance":   { label:"Bảo trì",         bg:"#FFE4E6", text:"#BE123C" },
 };
@@ -50,8 +49,6 @@ const INC_STATUS_CFG = {
 ══════════════════════════════════════════════════════════ */
 function HKRoomCard({ room, onClick, staffInfo }: { room: HKRoom; onClick: () => void; staffInfo?: { name: string; shortName: string; color: string } }) {
   const [hov, setHov] = useState(false);
-  const done      = room.checklist.filter(c => c.done).length;
-  const total     = room.checklist.length;
   const subCfg    = SUB_CFG[room.subType] ?? SUB_CFG["checkout-dirty"];
   const stCfg     = STATUS_CFG[room.status] ?? STATUS_CFG["to-clean"];
 
@@ -97,39 +94,8 @@ function HKRoomCard({ room, onClick, staffInfo }: { room: HKRoom; onClick: () =>
         {stCfg.label}
       </span>
 
-      {/* Progress if in-progress or inspecting */}
-      {(room.status === "in-progress" || room.status === "inspecting") && total > 0 && (
-        <div style={{ marginBottom:8 }}>
-          <div style={{ display:"flex",justifyContent:"space-between",marginBottom:3 }}>
-            <span style={{ fontSize:11,color:"#64748B" }}>{done}/{total} hạng mục</span>
-          </div>
-          <div style={{ height:4,background:"#E2E8F0",borderRadius:99,overflow:"hidden" }}>
-            <div style={{ height:"100%",background:"#3B82F6",
-              width:`${(done/total)*100}%`,borderRadius:99,transition:"width .3s" }} />
-          </div>
-        </div>
-      )}
-
       {/* Task info rows */}
       <div style={{ display:"flex",flexDirection:"column",gap:4 }}>
-        {room.status === "to-clean" && (
-          <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-            <BedDouble size={11} style={{ color:"#94A3B8",flexShrink:0 }} />
-            <span style={{ fontSize:11,color:"#64748B" }}>
-              {room.subType === "checkout-dirty" ? "Cần thay ga" : "Thay khăn tắm"}
-            </span>
-          </div>
-        )}
-        <div style={{ display:"flex",alignItems:"center",gap:6 }}>
-          <Sparkles size={11} style={{ color:"#94A3B8",flexShrink:0 }} />
-          <span style={{ fontSize:11,color:"#64748B" }}>
-            Minibar:{" "}
-            {room.status === "in-progress"
-              ? (done >= 2 ? "Đã kiểm tra" : "Đang kiểm tra")
-              : room.status === "to-clean" ? "Chưa kiểm tra"
-              : "Đạt"}
-          </span>
-        </div>
         {(room.estMin && (room.status === "to-clean" || room.status === "in-progress")) && (
           <div style={{ display:"flex",alignItems:"center",gap:6 }}>
             <Clock size={11} style={{ color:"#94A3B8",flexShrink:0 }} />
@@ -169,21 +135,8 @@ function RoomModal({
   staffInfo?: { name: string; shortName: string; color: string };
   currentUser?: EmployeeProfileDto | null;
 }) {
-  const [room, setRoom] = useState(initRoom);
-  const done   = room.checklist.filter(c => c.done).length;
-  const total  = room.checklist.length;
-  const canComplete = done === total;
-  const stCfg  = STATUS_CFG[room.status] ?? STATUS_CFG["to-clean"];
-
-  const toggleCheck = (id: string) =>
-    setRoom(r => ({ ...r, checklist: r.checklist.map(c => c.id===id?{...c,done:!c.done}:c) }));
-
-  const adjustMinibar = (i: number, delta: number) =>
-    setRoom(r => {
-      const mb = [...r.minibar];
-      mb[i] = { ...mb[i], count: Math.max(0, mb[i].count + delta) };
-      return { ...r, minibar: mb };
-    });
+  const room = initRoom;
+  const stCfg = STATUS_CFG[room.status] ?? STATUS_CFG["to-clean"];
 
   const staffDisplayName = staffInfo?.name ?? (currentUser?.full_name ? currentUser.full_name : (room.staffId ? `Nhân viên ${room.staffId}` : "Chưa phân công"));
   const staffInitial = staffDisplayName.charAt(0).toUpperCase();
@@ -248,94 +201,11 @@ function RoomModal({
           </div>
         </div>
 
-        {/* Scrollable body */}
-        <div style={{ flex:1,overflowY:"auto",padding:"20px 24px" }}>
-          {/* 1. Linen checklist */}
-          <div style={{ marginBottom:24 }}>
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
-              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                <div style={{ width:26,height:26,borderRadius:99,background:"#DBEAFE",
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  fontSize:12,fontWeight:700,color:"#1D4ED8" }}>1</div>
-                <h3 style={{ fontSize:14,fontWeight:700,color:"#0F172A",margin:0 }}>Checklist đồ vải &amp; Vệ sinh</h3>
-              </div>
-              {total > 0 && (
-                <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                  <span style={{ fontSize:12,color:"#64748B" }}>{done}/{total} hoàn thành</span>
-                  <div style={{ width:80,height:6,background:"#E2E8F0",borderRadius:99,overflow:"hidden" }}>
-                    <div style={{ height:"100%",background:"#16A34A",
-                      width:`${(done/total)*100}%`,borderRadius:99 }} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {total === 0 ? (
-              <p style={{ fontSize:12,color:"#94A3B8",fontStyle:"italic",padding:"8px 0" }}>
-                Checklist không thuộc phạm vi vận hành hiện tại.
-              </p>
-            ) : (
-              <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-                {room.checklist.map(item => (
-                  <div key={item.id}
-                    onClick={() => toggleCheck(item.id)}
-                    style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 12px",
-                      borderRadius:8,border:"1px solid #E2E8F0",cursor:"pointer",
-                      background:item.done?"#F0FDF4":"#FFF",transition:"background .12s" }}>
-                    {item.done
-                      ? <CheckSquare size={16} style={{ color:"#16A34A",flexShrink:0 }} />
-                      : <Square     size={16} style={{ color:"#CBD5E1",flexShrink:0 }} />}
-                    <span style={{ fontSize:13,color:item.done?"#166534":"#334155" }}>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 2. Minibar audit */}
-          <div style={{ marginBottom:24 }}>
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
-              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                <div style={{ width:26,height:26,borderRadius:99,background:"#DBEAFE",
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  fontSize:12,fontWeight:700,color:"#1D4ED8" }}>2</div>
-                <h3 style={{ fontSize:14,fontWeight:700,color:"#0F172A",margin:0 }}>Kiểm kê minibar</h3>
-              </div>
-            </div>
-
-            {room.minibar.length === 0 ? (
-              <p style={{ fontSize:12,color:"#94A3B8",fontStyle:"italic",padding:"8px 0" }}>
-                Không có dữ liệu minibar ghi nhận cho phòng này.
-              </p>
-            ) : (
-              <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-                {room.minibar.map((mb, i) => (
-                  <div key={i} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",
-                    padding:"8px 12px",borderRadius:8,border:"1px solid #E2E8F0",background:"#F8FAFC" }}>
-                    <span style={{ fontSize:13,color:"#334155" }}>{mb.item}</span>
-                    <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                      <button onClick={() => adjustMinibar(i, -1)}
-                        style={{ width:24,height:24,borderRadius:6,border:"1px solid #CBD5E1",background:"#FFF",
-                          cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                        <Minus size={12} style={{ color:"#475569" }} />
-                      </button>
-                      <span style={{ fontSize:13,fontWeight:700,minWidth:24,textAlign:"center",fontFamily:"'JetBrains Mono',monospace" }}>
-                        {mb.count}
-                      </span>
-                      <button onClick={() => adjustMinibar(i, 1)}
-                        style={{ width:24,height:24,borderRadius:6,border:"1px solid #CBD5E1",background:"#FFF",
-                          cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center" }}>
-                        <Plus size={12} style={{ color:"#475569" }} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
+        <div style={{ padding:"20px 24px",fontSize:13,color:"#475569",lineHeight:1.7 }}>
+          {room.status === "to-clean" && <p>Phòng cần được vệ sinh. Bấm “Bắt đầu dọn phòng” khi bắt đầu thực hiện.</p>}
+          {room.status === "in-progress" && <p>Phòng đang được vệ sinh. Sau khi dọn xong, bấm “Hoàn tất vệ sinh &amp; Bàn giao” để chuyển phòng sang sẵn sàng.</p>}
+          {room.status === "ready" && <p>Phòng trống, đã sẵn sàng đón khách.</p>}
         </div>
-
         {/* Footer buttons */}
         <div style={{ padding:"16px 24px",borderTop:"1px solid #E2E8F0",
           display:"flex",gap:10,flexShrink:0,alignItems:"center" }}>
@@ -357,37 +227,13 @@ function RoomModal({
 
           {/* Only show "Hoàn tất vệ sinh" when room is in-progress */}
           {room.status === "in-progress" && (
-            <button disabled={!canComplete} title={!canComplete ? `Cần hoàn thành checklist (${done}/${total})` : undefined} onClick={() => { onComplete?.(room); onClose(); }}
+            <button onClick={() => { onComplete?.(room); onClose(); }}
               style={{ flex:2,padding:"12px",borderRadius:9,
                 background:"#16A34A",color:"#FFF",fontSize:13,fontWeight:700,cursor:"pointer",
                 display:"flex",alignItems:"center",justifyContent:"center",gap:8,
                 boxShadow:"0 2px 8px rgba(22,163,74,.3)" }}>
-              <CheckCircle2 size={16} /> {!canComplete ? `Cần hoàn thành checklist (${done}/${total})` : "Hoàn tất vệ sinh & Bàn giao"}
+              <CheckCircle2 size={16} /> Hoàn tất vệ sinh &amp; Bàn giao
             </button>
-          )}
-
-          {/* When inspecting */}
-          {room.status === "inspecting" && (
-            <div style={{ flex: 2, display: "flex", gap: 8 }}>
-
-              <div
-                style={{
-                  flex: 1,
-                  padding: "12px",
-                  borderRadius: 9,
-                  background: "#EDE9FE",
-                  color: "#6D28D9",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                <Clock size={16} /> Đang chờ nghiệm thu
-              </div>
-            </div>
           )}
 
           {/* When ready */}
@@ -409,12 +255,14 @@ function RoomModal({
 ══════════════════════════════════════════════════════════ */
 function OverviewScreen({
   rooms = [],
+  occupiedRooms = [],
   search = "",
   onStartClean,
   onComplete,
   currentUser,
 }: {
   rooms?: HKRoom[];
+  occupiedRooms?: ApiRoom[];
   search?: string;
   onStartClean?: (room: HKRoom) => void;
   onComplete?: (room: HKRoom) => void;
@@ -440,10 +288,9 @@ function OverviewScreen({
   }, [searchFilteredRooms, currentEmpId]);
 
   const myDone = myRooms.filter(r => r.status === "ready").length;
-  const myInspecting = myRooms.filter(r => r.status === "inspecting").length;
   const myInProgress = myRooms.filter(r => r.status === "in-progress").length;
   const myToClean = myRooms.filter(r => r.status === "to-clean").length;
-  const myPct = myRooms.length > 0 ? Math.round(((myDone + myInspecting) / myRooms.length) * 100) : 0;
+  const myPct = myRooms.length > 0 ? Math.round(((myDone) / myRooms.length) * 100) : 0;
 
   const filteredMyRooms = useMemo(() => {
     if (filter === "all") return myRooms;
@@ -461,9 +308,7 @@ function OverviewScreen({
     const act: { time: string; msg: string; col: string }[] = [];
     searchFilteredRooms.forEach(r => {
       if (r.status === "ready") {
-        act.push({ time: "Hoàn tất", msg: `Phòng ${r.number} đã nghiệm thu đạt chuẩn`, col: "#16A34A" });
-      } else if (r.status === "inspecting") {
-        act.push({ time: "Chờ duyệt", msg: `Phòng ${r.number} hoàn thành dọn — chờ kiểm tra`, col: "#8B5CF6" });
+        act.push({ time: "Hoàn tất", msg: `Phòng ${r.number} đã dọn xong, sẵn sàng đón khách`, col: "#16A34A" });
       } else if (r.status === "in-progress") {
         act.push({ time: "Đang dọn", msg: `Phòng ${r.number} đang được vệ sinh`, col: "#3B82F6" });
       }
@@ -477,9 +322,24 @@ function OverviewScreen({
         <div style={{ marginBottom:16 }}>
           <h2 style={{ fontSize:18,fontWeight:700,color:"#0F172A",marginBottom:2 }}>Tổng quan ca làm</h2>
           <p style={{ fontSize:12,color:"#94A3B8" }}>
-            Trực ca vận hành · Bàn giao &amp; Nghiệm thu phòng buồng
+            Theo dõi phòng cần dọn, đang dọn và sẵn sàng
           </p>
         </div>
+
+        <section aria-label="Phòng đang có khách" style={{ background:"#FFF",borderRadius:14,border:"1px solid #E2E8F0",padding:"18px 20px",marginBottom:20 }}>
+          <h3 style={{ fontSize:15,fontWeight:700,color:"#0F172A",margin:"0 0 12px" }}>Phòng đang có khách · {occupiedRooms.length}</h3>
+          <div style={{ display:"flex",flexWrap:"wrap",gap:10 }}>
+            {occupiedRooms.filter(room => !search.trim() || `${room.name} ${room.room_type_name} ${room.floor}`.toLowerCase().includes(search.trim().toLowerCase())).map(room => (
+              <div key={room.id} style={{ border:"1px solid #BFDBFE",background:"#EFF6FF",borderRadius:10,padding:"12px 16px",minWidth:140 }}>
+                <strong style={{ color:"#1E40AF",fontSize:16 }}>Phòng {room.name}</strong>
+                <p style={{ margin:"4px 0",fontSize:12,color:"#475569" }}>Tầng {room.floor} · {room.room_type_name}</p>
+                <span style={{ fontSize:12,color:"#1D4ED8" }}>Đang có khách</span>
+              </div>
+            ))}
+          </div>
+          {!occupiedRooms.length && <p style={{ fontSize:12,color:"#64748B" }}>Chưa có phòng đang có khách.</p>}
+          {occupiedRooms.length > 0 && <p style={{ fontSize:12,color:"#64748B",margin:"12px 0 0" }}>Chỉ theo dõi trạng thái; phòng được đưa vào danh sách cần dọn sau khi khách trả phòng.</p>}
+        </section>
 
         {/* My Shift Tasks & Assigned Rooms */}
         <div style={{ background:"#FFF",borderRadius:14,border:"1px solid #E2E8F0",padding:"18px 20px",marginBottom:20,boxShadow:"0 1px 3px rgba(0,0,0,.03)" }}>
@@ -505,7 +365,7 @@ function OverviewScreen({
               <div>
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:4 }}>
                   <span style={{ fontSize:11,color:"#64748B" }}>Tiến độ hoàn thành:</span>
-                  <span style={{ fontSize:12,fontWeight:700,color:myPct===100?"#16A34A":"#D97706" }}>{myDone + myInspecting}/{myRooms.length} phòng ({myPct}%)</span>
+                  <span style={{ fontSize:12,fontWeight:700,color:myPct===100?"#16A34A":"#D97706" }}>{myDone}/{myRooms.length} phòng ({myPct}%)</span>
                 </div>
                 <div style={{ width:160,height:6,background:"#E2E8F0",borderRadius:99,overflow:"hidden" }}>
                   <div style={{ height:"100%",background:"#16A34A",width:`${myPct}%`,borderRadius:99,transition:"width .3s" }} />
@@ -524,17 +384,13 @@ function OverviewScreen({
             <div style={{ padding:"12px 14px",borderRadius:10,background:"#EFF6FF",border:"1px solid #BFDBFE" }}>
               <p style={{ fontSize:11,color:"#1D4ED8",fontWeight:600,marginBottom:2 }}>ĐANG DỌN DẸP</p>
               <p style={{ fontSize:20,fontWeight:800,color:"#1D4ED8",margin:0 }}>{myInProgress} phòng</p>
-              <p style={{ fontSize:11,color:"#2563EB",marginTop:2,marginBottom:0 }}>Đang thực hiện checklist</p>
+              <p style={{ fontSize:11,color:"#2563EB",marginTop:2,marginBottom:0 }}>Đang vệ sinh phòng</p>
             </div>
-            <div style={{ padding:"12px 14px",borderRadius:10,background:"#F5F3FF",border:"1px solid #DDD6FE" }}>
-              <p style={{ fontSize:11,color:"#6D28D9",fontWeight:600,marginBottom:2 }}>CHỜ NGHIỆM THU</p>
-              <p style={{ fontSize:20,fontWeight:800,color:"#6D28D9",margin:0 }}>{myInspecting} phòng</p>
-              <p style={{ fontSize:11,color:"#7C3AED",marginTop:2,marginBottom:0 }}>Đã dọn xong, chờ kiểm tra</p>
-            </div>
+
             <div style={{ padding:"12px 14px",borderRadius:10,background:"#F0FDF4",border:"1px solid #BBF7D0" }}>
               <p style={{ fontSize:11,color:"#166534",fontWeight:600,marginBottom:2 }}>ĐÃ SẴN SÀNG</p>
               <p style={{ fontSize:20,fontWeight:800,color:"#166534",margin:0 }}>{myDone} phòng</p>
-              <p style={{ fontSize:11,color:"#15803D",marginTop:2,marginBottom:0 }}>Đã nghiệm thu đạt chuẩn</p>
+              <p style={{ fontSize:11,color:"#15803D",marginTop:2,marginBottom:0 }}>Đã dọn xong, sẵn sàng đón khách</p>
             </div>
           </div>
 
@@ -546,7 +402,6 @@ function OverviewScreen({
                 { id:"all", label:`Tất cả (${myRooms.length})` },
                 { id:"to-clean", label:`Cần dọn (${myToClean})` },
                 { id:"in-progress", label:`Đang dọn (${myInProgress})` },
-                { id:"inspecting", label:`Chờ kiểm tra (${myInspecting})` },
                 { id:"ready", label:`Sẵn sàng (${myDone})` },
               ].map(t => {
                 const active = filter === t.id;
@@ -569,8 +424,6 @@ function OverviewScreen({
           ) : (
             <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:10 }}>
               {filteredMyRooms.map(room => {
-                const done = room.checklist.filter(c => c.done).length;
-                const total = room.checklist.length;
                 const subCfg = SUB_CFG[room.subType] ?? SUB_CFG["checkout-dirty"];
                 const stCfg = STATUS_CFG[room.status] ?? STATUS_CFG["to-clean"];
                 return (
@@ -603,9 +456,8 @@ function OverviewScreen({
                       )}
                     </div>
 
-                    {/* Checklist summary */}
+                    {/* Room actions */}
                     <div style={{ borderTop:"1px solid #EEF2F6",paddingTop:8,display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-                      <span style={{ fontSize:11,color:"#64748B" }}>Checklist: <strong>{done}/{total}</strong></span>
                       <button onClick={(e) => { e.stopPropagation(); setModal(room); }}
                         style={{ padding:"3px 8px",borderRadius:6,border:"1px solid #CBD5E1",background:"#FFF",color:"#1E293B",fontSize:10,fontWeight:600,cursor:"pointer" }}>
                         {room.status === "to-clean" ? "Dọn phòng →" : room.status === "in-progress" ? "Tiếp tục →" : "Xem phiếu"}
@@ -686,7 +538,6 @@ function OverviewScreen({
 const COLUMNS: { id: HKStatus; label: string; color: string; bg: string }[] = [
   { id:"to-clean",    label:"Cần dọn",              color:"#F59E0B",bg:"#FFFBEB" },
   { id:"in-progress", label:"Đang dọn",             color:"#3B82F6",bg:"#EFF6FF" },
-  { id:"inspecting",  label:"Đang kiểm tra",        color:"#8B5CF6",bg:"#F5F3FF" },
   { id:"ready",       label:"Sẵn sàng",             color:"#16A34A",bg:"#F0FDF4" },
 ];
 
@@ -814,7 +665,6 @@ function BoardScreen({
 function HKKpiBar({ rooms = [] }: { rooms?: HKRoom[] }) {
   const dirty      = rooms.filter(r => r.status === "to-clean").length;
   const inProgress = rooms.filter(r => r.status === "in-progress").length;
-  const inspecting = rooms.filter(r => r.status === "inspecting").length;
   const ready      = rooms.filter(r => r.status === "ready").length;
   return (
     <div style={{ background:"#FFF",borderBottom:"1px solid #E2E8F0",
@@ -848,6 +698,7 @@ export default function HousekeepingStation({ onBack }: { onBack: () => void }) 
   const [page, setPage]     = useState<NavPage>("overview");
   const [search, setSearch] = useState("");
   const [liveRooms, setLiveRooms] = useState<HKRoom[]>([]);
+  const [occupiedRooms, setOccupiedRooms] = useState<ApiRoom[]>([]);
   const [currentUser, setCurrentUser] = useState<EmployeeProfileDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -867,6 +718,7 @@ export default function HousekeepingStation({ onBack }: { onBack: () => void }) 
       ]);
 
       if (profile) setCurrentUser(profile);
+      setOccupiedRooms((rooms || []).filter(room => room.workflow_status === "Đang có khách" || room.status === "occupied"));
       const mappedRooms = (rooms || []).flatMap((room: ApiRoom): HKRoom[] => {
         const workflowStatus = room.workflow_status ?? "";
         const isDirty = workflowStatus === "Cần dọn";
@@ -879,9 +731,7 @@ export default function HousekeepingStation({ onBack }: { onBack: () => void }) 
           floor: room.floor,
           type: room.room_type_name ?? room.room_type_id ?? "Phòng",
           status: isDirty ? "to-clean" : isCleaning ? "in-progress" : "ready",
-          subType: isDirty || isCleaning ? "checkout-dirty" : "stayover",
-          checklist: [],
-          minibar: [],
+          subType: isDirty || isCleaning ? "checkout-dirty" : "vacant",
         }];
       });
       setLiveRooms(mappedRooms);
@@ -915,10 +765,6 @@ export default function HousekeepingStation({ onBack }: { onBack: () => void }) 
   };
 
   const handleCompleteRoom = async (room: HKRoom) => {
-    if (room.checklist.some(item => !item.done)) {
-      alert("Cần hoàn thành toàn bộ checklist trước khi bàn giao vệ sinh.");
-      return;
-    }
     try {
       await housekeepingTechnicalApi.updateRoomStatus(room.id, "available");
       await loadData();
@@ -1096,6 +942,7 @@ export default function HousekeepingStation({ onBack }: { onBack: () => void }) 
         {page === "overview"   && (
           <OverviewScreen
             rooms={liveRooms}
+            occupiedRooms={occupiedRooms}
             search={search}
             onStartClean={handleStartClean}
             onComplete={handleCompleteRoom}

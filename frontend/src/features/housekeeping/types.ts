@@ -1,5 +1,5 @@
-export type HKStatus  = "to-clean" | "in-progress" | "inspecting" | "ready";
-export type SubType   = "checkout-dirty" | "stayover" | "vip-arrival" | "maintenance";
+export type HKStatus  = "to-clean" | "in-progress" | "ready";
+export type SubType   = "checkout-dirty" | "vacant" | "vip-arrival" | "maintenance";
 export type NavPage = "overview" | "board" | "services";
 export type ShiftName = "Sáng" | "Chiều" | "Tối";
 export type Priority  = "high" | "medium" | "low";
@@ -16,7 +16,6 @@ export interface HKRoom {
   status: HKStatus; subType: SubType; isVip?: boolean;
   staffId?: string; estMin?: number; doneMin?: number;
   taskId?: number;
-  checklist: CheckItem[]; minibar: MinibarItem[];
   notes?: string;
 }
 export interface Incident {

@@ -5,7 +5,6 @@ import com.hospitality.mis.dao.room.RoomDatabase;
 import com.hospitality.mis.dto.room.RoomDtos;
 import com.hospitality.mis.entity.room.RoomStatus;
 import com.hospitality.mis.middleware.security.SecurityActor;
-import com.hospitality.mis.service.governance.AuditService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,9 +17,8 @@ import java.util.List;
 @Service
 public class RoomService {
     private final RoomDatabase rooms;
-    private final AuditService audit;
     private final Clock clock;
-    public RoomService(RoomDatabase rooms,AuditService audit,Clock clock){this.rooms=rooms;this.audit=audit;this.clock=clock;}
+    public RoomService(RoomDatabase rooms,Clock clock){this.rooms=rooms;this.clock=clock;}
     @Transactional(readOnly=true)
     public List<RoomDtos.Response> search(String type,RoomStatus status){return rooms.search(type,status).stream().map(RoomDatabase.Snapshot::response).toList();}
     @Transactional(readOnly=true)
@@ -44,7 +42,8 @@ public class RoomService {
         var old=rooms.lock(id).orElseThrow(()->new DomainException("ROOM_NOT_FOUND","Không tìm thấy phòng: "+id));
         if(old.status()==status&&status!=RoomStatus.CLEANING)return old.response();
         var result=rooms.status(old,status,actor);
-        audit.record(actor,"ROOM_STATUS_CHANGED","ROOM",id,old.status().databaseCode(),status.databaseCode(),null);return result.response();
+        // The SQL trigger records this change in the same transaction.
+        return result.response();
     }
     private boolean hasRole(String role){var auth=SecurityContextHolder.getContext().getAuthentication();return auth!=null&&auth.getAuthorities().stream().anyMatch(a->role.equals(a.getAuthority()));}
 }

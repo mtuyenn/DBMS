@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 public final class ServiceConsumptionDtos {
     private ServiceConsumptionDtos() {}
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -11,4 +12,7 @@ public final class ServiceConsumptionDtos {
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record Response(long id,long reservationId,String serviceId,String serviceName,int quantity,
             BigDecimal unitPrice,BigDecimal amount,LocalDateTime usedAt,boolean cancelled) {}
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record Summary(long reservationId, List<String> roomIds, String guestName,
+            long serviceCount, int totalQuantity, BigDecimal totalAmount, List<Response> usages) {}
 }

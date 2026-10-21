@@ -29,8 +29,18 @@ public class RoomDatabase {
         }
     }
 
-    private static final String SELECT = "SELECT maPhong,maPhong AS tenPhong,maLoaiPhong,tenLoaiPhong,giaTheoNgay,"
-            + "tang,trangThai,trangThai,moTa,CAST(0 AS BIGINT) FROM dbo.vwPhongSoDo";
+    private static final String COLUMNS = "SELECT maPhong,maPhong AS tenPhong,maLoaiPhong,tenLoaiPhong,giaTheoNgay,"
+            + "tang,trangThai,trangThai,moTa,CAST(0 AS BIGINT)";
+    private static final String SELECT = COLUMNS + " FROM dbo.vwPhongSoDo";
+    // Cleaning rooms come from the housekeeping view; keep ready/occupied rooms
+    // as well so the overview still displays the complete room inventory.
+    private static final String SEARCH = COLUMNS + " FROM ("
+            + "SELECT c.maPhong,c.tang,c.tenLoaiPhong,c.moTa,c.trangThai,"
+            + "s.maLoaiPhong,s.giaTheoNgay,s.dangHoatDong "
+            + "FROM dbo.vwPhongCanDon c JOIN dbo.vwPhongSoDo s ON s.maPhong=c.maPhong "
+            + "UNION ALL SELECT maPhong,tang,tenLoaiPhong,moTa,trangThai,"
+            + "maLoaiPhong,giaTheoNgay,dangHoatDong FROM dbo.vwPhongSoDo "
+            + "WHERE trangThai NOT IN (N'Cần dọn',N'Đang dọn')) phong";
     private final JdbcTemplate jdbc;
     private final RoomStatusConverter statuses = new RoomStatusConverter();
     private final org.springframework.jdbc.core.RowMapper<Snapshot> rows = (r, n) -> new Snapshot(
@@ -42,7 +52,7 @@ public class RoomDatabase {
 
     public List<Snapshot> search(String type, RoomStatus status) {
         String code = statuses.convertToDatabaseColumn(status);
-        return jdbc.query(SELECT + " WHERE dangHoatDong=1 AND (? IS NULL OR maLoaiPhong=?) "
+        return jdbc.query(SEARCH + " WHERE dangHoatDong=1 AND (? IS NULL OR maLoaiPhong=?) "
                 + "AND (? IS NULL OR trangThai=?) ORDER BY maPhong", rows, type, type, code, code);
     }
 
