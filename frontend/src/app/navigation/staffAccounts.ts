@@ -18,6 +18,7 @@ export interface StaffAccount {
 export const staffAccounts: Record<string, StaffAccount> = {
   // Employee IDs accepted by the login form.
   frontdesk: { employeeId: "FRONTDESK", role: "reception", view: "frontdesk", label: "Lễ tân" },
+  frontdesk2: { employeeId: "FRONTDESK2", role: "reception", view: "frontdesk", label: "Lễ tân 2" },
   housekeep: { employeeId: "HOUSEKEEP", role: "housekeeping", view: "housekeeping", label: "Buồng phòng" },
   accounting: { employeeId: "ACCOUNTING", role: "accounting", view: "accounting", label: "Kế toán" },
   manager: { employeeId: "MANAGER", role: "manager", view: "manager", label: "Quản lý" },

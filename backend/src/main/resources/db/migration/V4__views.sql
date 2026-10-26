@@ -1,5 +1,4 @@
--- V4: các read model phục vụ trang quảng cáo và bốn vai trò.
--- Danh sách phòng đang hoạt động; lễ tân dùng để kiểm tra phòng còn nhận đặt hay không.
+
 CREATE VIEW dbo.vwPhongQuangCao AS
 SELECT p.maPhong,
        p.tang,
@@ -14,7 +13,6 @@ JOIN dbo.LoaiPhong lp ON lp.maLoaiPhong=p.maLoaiPhong
 WHERE p.trangThai <> N'Đang dọn' AND lp.dangHoatDong=1;
 GO
 
--- Read model cho sơ đồ lễ tân: giữ đủ mọi phòng để không mất phòng đang dọn/bảo trì.
 CREATE VIEW dbo.vwPhongSoDo AS
 SELECT p.maPhong,
        p.tang,
@@ -61,7 +59,6 @@ JOIN dbo.LoaiPhong lp ON lp.maLoaiPhong=phong.maLoaiPhong
 LEFT JOIN dbo.HoaDon h ON h.maPhieuDatPhong=p.maPhieuDatPhong;
 GO
 
--- Hồ sơ khách và tổng tiền đã thanh toán, dùng ở màn hình tra cứu của lễ tân.
 CREATE VIEW dbo.vwHoSoKhachHang AS
 SELECT k.maKhachLuuTru,
        k.hoVaTen,
@@ -158,7 +155,6 @@ FROM dbo.NhatKyKiemSoat n
 LEFT JOIN dbo.NhanVien nv ON nv.maNhanVien=n.maNhanVien;
 GO
 
--- QUẢN LÝ: các chỉ số vận hành tổng hợp từ ba function quản trị.
 CREATE VIEW dbo.vwQuanLyTongQuan AS
 SELECT dbo.fnDemNhanVienHoatDongTheoVaiTro(N'Lễ tân') AS soLeTan,
        dbo.fnDemNhanVienHoatDongTheoVaiTro(N'Quản lý') AS soQuanLy,
@@ -171,7 +167,6 @@ SELECT dbo.fnDemNhanVienHoatDongTheoVaiTro(N'Lễ tân') AS soLeTan,
        dbo.fnDemLoaiPhongDangHoatDong() AS soLoaiPhongDangHoatDong;
 GO
 
--- QUẢN LÝ: công suất và tình trạng phòng theo từng loại phòng.
 CREATE VIEW dbo.vwTinhHinhLoaiPhong AS
 SELECT lp.maLoaiPhong,
        lp.ten AS tenLoaiPhong,
@@ -189,7 +184,6 @@ WHERE lp.dangHoatDong=1
 GROUP BY lp.maLoaiPhong,lp.ten,lp.giaTheoNgay;
 GO
 
--- BUỒNG PHÒNG/DỊCH VỤ: số dòng và tổng số lượng dịch vụ còn hiệu lực theo phiếu.
 CREATE VIEW dbo.vwThongKeDichVuDatPhong AS
 SELECT p.maPhieuDatPhong, p.trangThai, k.hoVaTen AS tenKhach,
        dbo.fnDemDichVuDangDung(p.maPhieuDatPhong) AS soDongDichVu,
@@ -199,7 +193,6 @@ FROM dbo.PhieuDatPhong p
 JOIN dbo.KhachLuuTru k ON k.maKhachLuuTru=p.maKhachLuuTru;
 GO
 
--- KẾ TOÁN: doanh thu theo từng phương thức thanh toán.
 CREATE VIEW dbo.vwDoanhThuTheoPhuongThuc AS
 SELECT p.phuongThuc, dbo.fnTongTienTheoPhuongThuc(p.phuongThuc) AS doanhThu
 FROM (VALUES (N'Tiền mặt'),(N'Thẻ'),(N'Chuyển khoản')) p(phuongThuc);

@@ -1,6 +1,4 @@
--- V3: các hàm tính toán/tra cứu nhỏ được dùng bởi các truy vấn nghiệp vụ.
 
--- LỄ TÂN: thời lượng, tiền phòng và khả dụng phòng.
 CREATE FUNCTION dbo.fnSoDemLuuTru(
     @thoiDiemNhan DATETIME2(0), @thoiDiemTra DATETIME2(0)
 )
@@ -45,7 +43,6 @@ BEGIN
 END;
 GO
 
--- BUỒNG PHÒNG/DỊCH VỤ: tổng tiền, số dòng và tổng số lượng dịch vụ đang dùng.
 CREATE FUNCTION dbo.fnTinhTongTienDichVu(@maPhieuDatPhong BIGINT)
 RETURNS DECIMAL(12,2)
 AS
@@ -82,7 +79,6 @@ BEGIN
 END;
 GO
 
--- KẾ TOÁN: đã thu, còn nợ và doanh thu theo phương thức.
 CREATE FUNCTION dbo.fnTongTienDaThu(@maHoaDon BIGINT)
 RETURNS DECIMAL(12,2)
 AS
@@ -107,7 +103,6 @@ BEGIN
 END;
 GO
 
--- QUẢN LÝ: số lượng nhân sự, phòng theo trạng thái và loại phòng đang mở bán.
 CREATE FUNCTION dbo.fnDemNhanVienHoatDongTheoVaiTro(@vaiTro NVARCHAR(30))
 RETURNS INT
 AS

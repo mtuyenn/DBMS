@@ -7,12 +7,12 @@ BEGIN
     IF DB_NAME() <> N'QLKS'
         THROW 51000, N'Hãy chọn database QLKS trước khi sao lưu.', 1;
 
-    -- Đây là đường dẫn bên trong SQL Server Docker.
-    -- Trên Windows, cùng file này nằm ở C:\Backup\QLKS.bak.
-    DECLARE @FileTrongSQLServer NVARCHAR(260) = N'/var/opt/mssql/backup/QLKS.bak';
-    DECLARE @FileTrenWindows NVARCHAR(260) = N'C:\Backup\QLKS.bak';
+    -- là đường dẫn bên trong SQL Server Docker.
+    -- trên Windows, cùng file này nằm ở C:\Backup\QLKS.bak.
+    DECLARE @FileTrongSQLServer NVARCHAR(260) = N'/var/opt/mssql/backup/QLKS_v2.bak';
+    DECLARE @FileTrenWindows NVARCHAR(260) = N'C:\Backup\QLKS_v2.bak';
 
-    -- Backup là chụp lại toàn bộ database vào một file.
+
     BACKUP DATABASE [QLKS]
     TO DISK = @FileTrongSQLServer
     WITH INIT, CHECKSUM, STATS = 10;
@@ -27,11 +27,8 @@ BEGIN
 END;
 GO
 
-EXEC dbo.uspSaoLuuQLKS;
-
 /*
     RESTORE (KHÔI PHỤC) QLKS TỪ FILE BACKUP
-*/
 
 USE master;
 GO
@@ -53,4 +50,5 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+*/
 

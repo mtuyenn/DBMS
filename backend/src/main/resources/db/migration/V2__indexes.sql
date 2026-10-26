@@ -15,15 +15,11 @@ CREATE INDEX IX_HoaDon_ThoiDiem_TrangThai ON dbo.HoaDon(thoiDiemLap, trangThai);
 
 CREATE INDEX IX_GiaoDich_HoaDon_ThoiDiem ON dbo.GiaoDichThanhToan(maHoaDon, thoiDiem);
 
-CREATE NONCLUSTERED INDEX IX_PhieuDatPhong_TrangThai 
-ON dbo.PhieuDatPhong(trangThai);
+CREATE NONCLUSTERED INDEX IX_PhieuDatPhong_TrangThai ON dbo.PhieuDatPhong(trangThai);
 GO
 
--- Tim nhanh theo thoi diem nhan phong.
 CREATE INDEX IX_ChiTietDatPhong_ThoiDiemNhan ON dbo.ChiTietDatPhong(thoiDiemNhanPhong);
 GO
 
--- Tim nhanh theo thoi diem tra phong.
-CREATE INDEX IX_ChiTietDatPhong_ThoiDiemTra
-ON dbo.ChiTietDatPhong(thoiDiemTraPhong);
+CREATE INDEX IX_ChiTietDatPhong_ThoiDiemTraON ON dbo.ChiTietDatPhong(thoiDiemTraPhong);
 GO

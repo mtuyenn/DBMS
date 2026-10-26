@@ -33,9 +33,6 @@ DAO có thể đọc trực tiếp một bảng. Truy vấn đọc JOIN nhiều 
 
 ## 5. Cấu hình local và kiểm thử
 
-- Hai dòng `spring.mail.username` và `spring.mail.password` trong `backend/src/main/resources/application.yml` là cấu hình local/demo do chủ repo quản lý. Giữ nguyên chúng.
-- Giữ `MailConfigurationTest` làm chốt kiểm tra hai dòng SMTP.
-- Giữ nguyên giá trị local/demo `VNPAY_TMN_CODE` và `VNPAY_HASH_SECRET` do chủ repo quản lý, dù bản gọn không gọi VNPay.
 - Trước commit/push, rà chính xác các file định gửi; không gửi `application.yml` khi còn thông tin đăng nhập hoặc secret local.
 
 ## 16. SMTP local

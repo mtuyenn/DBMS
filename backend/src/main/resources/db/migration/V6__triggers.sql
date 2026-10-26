@@ -1,4 +1,4 @@
--- BUỒNG PHÒNG/DỊCH VỤ: ghi nhật ký khi đổi trạng thái phòng.
+
 CREATE TRIGGER dbo.trgGhiNhatKyTrangThaiPhong ON dbo.Phong
 AFTER UPDATE
 AS
@@ -12,39 +12,45 @@ BEGIN
 END;
 GO
 
--- LỄ TÂN: cố định giá phòng vào thời điểm tạo chi tiết đặt.
-CREATE TRIGGER dbo.trgChotGiaPhong ON dbo.ChiTietDatPhong
+
+CREATE OR ALTER TRIGGER dbo.trgChotGiaPhong
+ON dbo.ChiTietDatPhong
 AFTER INSERT
 AS
 BEGIN
-    SET NOCOUNT ON;
-    UPDATE c SET giaTheoNgayDaChot=lp.giaTheoNgay
-    FROM dbo.ChiTietDatPhong c
-    JOIN inserted i ON i.maPhieuDatPhong=c.maPhieuDatPhong AND i.maPhong=c.maPhong
-    JOIN dbo.Phong p ON p.maPhong=c.maPhong
-    JOIN dbo.LoaiPhong lp ON lp.maLoaiPhong=p.maLoaiPhong
+    UPDATE c
+    SET giaTheoNgayDaChot = lp.giaTheoNgay
+    FROM dbo.ChiTietDatPhong AS c
+    JOIN inserted AS i
+      ON i.maPhieuDatPhong = c.maPhieuDatPhong
+     AND i.maPhong = c.maPhong
+    JOIN dbo.Phong AS p
+      ON p.maPhong = i.maPhong
+    JOIN dbo.LoaiPhong AS lp
+      ON lp.maLoaiPhong = p.maLoaiPhong
     WHERE c.giaTheoNgayDaChot IS NULL;
 END;
 GO
 
--- LỄ TÂN: chặn đặt chồng lịch kể cả khi chi tiết được ghi ngoài stored procedure.
-CREATE TRIGGER dbo.trgKiemTraTrungLichDatPhong ON dbo.ChiTietDatPhong
+
+CREATE TRIGGER dbo.trgKiemTraTrungLichDatPhong 
+ON dbo.ChiTietDatPhong
 AFTER INSERT, UPDATE
 AS
 BEGIN
-    SET NOCOUNT ON;
     IF EXISTS (
         SELECT 1
-        FROM inserted moi
-        JOIN dbo.PhieuDatPhong phieuMoi ON phieuMoi.maPhieuDatPhong=moi.maPhieuDatPhong
-        JOIN dbo.ChiTietDatPhong cu ON cu.maPhong=moi.maPhong
-             AND (cu.maPhieuDatPhong<>moi.maPhieuDatPhong OR cu.maPhong<>moi.maPhong)
-        JOIN dbo.PhieuDatPhong phieuCu ON phieuCu.maPhieuDatPhong=cu.maPhieuDatPhong
-        WHERE phieuMoi.trangThai IN (N'Đã xác nhận',N'Đang ở')
-          AND phieuCu.trangThai IN (N'Đã xác nhận',N'Đang ở')
-          AND moi.thoiDiemNhanPhong<cu.thoiDiemTraPhong
-          AND moi.thoiDiemTraPhong>cu.thoiDiemNhanPhong
-    ) THROW 53603, N'Phòng đã có lượt đặt trùng thời gian', 1;
+        FROM inserted i
+        JOIN dbo.ChiTietDatPhong c ON c.maPhong = i.maPhong 
+                                  AND c.maPhieuDatPhong <> i.maPhieuDatPhong 
+        JOIN dbo.PhieuDatPhong p ON p.maPhieuDatPhong = c.maPhieuDatPhong
+        WHERE p.trangThai IN (N'Đã xác nhận', N'Đang ở')
+          AND i.thoiDiemNhanPhong < c.thoiDiemTraPhong
+          AND i.thoiDiemTraPhong > c.thoiDiemNhanPhong
+    )
+    BEGIN
+        THROW 53603, N'Phòng đã có lượt đặt trùng thời gian!', 1;
+    END;
 END;
 GO
 
@@ -61,7 +67,7 @@ BEGIN
 END;
 GO
 
--- QUẢN LÝ: không xóa cứng hồ sơ nhân viên; hãy ngừng kích hoạt tài khoản.
+
 CREATE TRIGGER dbo.trgChanXoaNhanVien ON dbo.NhanVien
 INSTEAD OF DELETE
 AS
@@ -71,7 +77,7 @@ BEGIN
 END;
 GO
 
--- QUẢN LÝ: luôn giữ ít nhất một quản lý đang hoạt động.
+
 CREATE TRIGGER dbo.trgBaoVeQuanLyCuoiCung ON dbo.NhanVien
 AFTER UPDATE
 AS

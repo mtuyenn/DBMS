@@ -1,3 +1,4 @@
+
 CREATE PROCEDURE dbo.uspLuuNhanVien
     @maNhanVien NVARCHAR(20), @hoVaTen NVARCHAR(100), @matKhau NVARCHAR(100)=NULL,
     @vaiTro NVARCHAR(30), @soDienThoai NVARCHAR(20)
@@ -33,32 +34,29 @@ BEGIN
 END;
 GO
 
+-- 1. Lưu thông tin loại phòng, giá của phòng, mô tả loại phòng.
 CREATE PROCEDURE dbo.uspLuuLoaiPhong
     @maLoaiPhong NVARCHAR(20), @ten NVARCHAR(60), @giaTheoNgay DECIMAL(12,2), @moTa NVARCHAR(500)=NULL
 AS
 BEGIN
-    SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM dbo.LoaiPhong WHERE maLoaiPhong=@maLoaiPhong)
         UPDATE dbo.LoaiPhong SET ten=@ten, giaTheoNgay=@giaTheoNgay, moTa=@moTa WHERE maLoaiPhong=@maLoaiPhong;
     ELSE INSERT INTO dbo.LoaiPhong(maLoaiPhong,ten,giaTheoNgay,moTa) VALUES(@maLoaiPhong,@ten,@giaTheoNgay,@moTa);
 END;
 GO
 
+-- 2. Lưu thông tin phòng, loại phòng, tầng, mô tả phòng.
 CREATE PROCEDURE dbo.uspLuuPhong
     @maPhong NVARCHAR(20), @maLoaiPhong NVARCHAR(20), @tang INT, @moTa NVARCHAR(300)=NULL
 AS
 BEGIN
-    SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM dbo.Phong WHERE maPhong=@maPhong)
         UPDATE dbo.Phong SET maLoaiPhong=@maLoaiPhong,tang=@tang,moTa=@moTa WHERE maPhong=@maPhong;
     ELSE INSERT INTO dbo.Phong(maPhong,maLoaiPhong,tang,moTa) VALUES(@maPhong,@maLoaiPhong,@tang,@moTa);
 END;
 GO
 
--- LỄ TÂN: lưu khách, tạo đặt phòng, nhận phòng và hủy đặt phòng.
-
--- 1. Có mã khách tồn tại thì cập nhật; các trường hợp còn lại thì thêm mới.
--- OUTPUT trả mã khách cho API, để API dùng mã đó khi tạo phiếu đặt phòng.
+-- 3. Lưu thông tin khách hàng.
 CREATE PROCEDURE dbo.uspLuuKhachHang
     @maKhachLuuTru BIGINT = NULL OUTPUT,
     @hoVaTen NVARCHAR(100),
@@ -69,7 +67,6 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Đã có mã khách trong bảng: sửa thông tin của khách đó.
     IF @maKhachLuuTru IS NOT NULL AND EXISTS (
         SELECT 1
         FROM dbo.KhachLuuTru
@@ -85,18 +82,15 @@ BEGIN
     END
     ELSE
     BEGIN
-        -- Chưa có mã hoặc mã không tồn tại: thêm một khách mới.
         INSERT INTO dbo.KhachLuuTru(hoVaTen, soDienThoai, email, soGiayToTuyThan)
         VALUES (@hoVaTen, @soDienThoai, @email, @soGiayToTuyThan);
 
-        -- Lấy mã IDENTITY của dòng khách vừa thêm trong SP này.
         SET @maKhachLuuTru = SCOPE_IDENTITY();
     END;
 END;
 GO
 
--- 2. Tạo một phiếu đặt cho một phòng, đồng thời lưu giá phòng tại lúc đặt.
--- @maPhieuDatPhong OUTPUT trả mã phiếu vừa tạo cho nơi gọi.
+-- 4. Tạo phiếu đặt phòng cho khách hàng.
 CREATE PROCEDURE dbo.uspTaoDatPhong
     @maKhachLuuTru BIGINT,
     @maNhanVien NVARCHAR(20),
@@ -107,21 +101,15 @@ CREATE PROCEDURE dbo.uspTaoDatPhong
     @maPhieuDatPhong BIGINT OUTPUT
 AS
 BEGIN
-    SET NOCOUNT ON;
-    SET XACT_ABORT ON;
-
-    -- Bước 1: kiểm tra cả ngày và giờ. Giờ nhận không được trước thời điểm hiện tại.
     IF @thoiDiemTra <= @thoiDiemNhan OR @thoiDiemNhan < SYSDATETIME()
     BEGIN
         THROW 51403, N'Ngày nhận phải từ hôm nay và ngày trả phải sau ngày nhận', 1;
     END;
 
     BEGIN TRY
-        -- Giữ khóa đến cuối transaction để hai lễ tân không cùng đặt trùng một phòng.
         SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
         BEGIN TRANSACTION;
 
-        -- Bước 2: phòng phải tồn tại. UPDLOCK/HOLDLOCK giữ khóa phòng khi đang đặt.
         IF NOT EXISTS (
             SELECT 1
             FROM dbo.Phong WITH (UPDLOCK, HOLDLOCK)
@@ -131,9 +119,7 @@ BEGIN
             THROW 51404, N'Không tìm thấy phòng', 1;
         END;
 
-        -- Bước 3: chặn lịch giao nhau của các phiếu đã xác nhận hoặc đang ở.
-        -- Trùng lịch khi: nhận mới < trả cũ VÀ trả mới > nhận cũ.
-        -- Hai lượt nối tiếp nhau (giờ nhận mới = giờ trả cũ) vẫn được phép.
+
         IF EXISTS (
             SELECT 1
             FROM dbo.ChiTietDatPhong chiTiet WITH (UPDLOCK, HOLDLOCK)
@@ -147,13 +133,11 @@ BEGIN
             THROW 51405, N'Phòng đã có lượt đặt trùng thời gian', 1;
         END;
 
-        -- Bước 4: thêm phiếu, rồi lấy mã vừa tạo để thêm chi tiết phòng.
         INSERT INTO dbo.PhieuDatPhong(maKhachLuuTru, maNhanVien, ghiChu)
         VALUES (@maKhachLuuTru, @maNhanVien, @ghiChu);
 
         SET @maPhieuDatPhong = SCOPE_IDENTITY();
 
-        -- Lấy giá từ loại phòng rồi lưu vào chi tiết để giữ nguyên giá đã đặt.
         INSERT INTO dbo.ChiTietDatPhong(
             maPhieuDatPhong, maPhong, thoiDiemNhanPhong, thoiDiemTraPhong, giaTheoNgayDaChot
         )
@@ -162,25 +146,20 @@ BEGIN
         JOIN dbo.LoaiPhong loaiPhong ON loaiPhong.maLoaiPhong = phong.maLoaiPhong
         WHERE phong.maPhong = @maPhong;
 
-        -- Bước 5: chỉ lưu khi cả phiếu và chi tiết đều thành công.
         COMMIT TRANSACTION;
-        -- Trả mức cô lập về READ COMMITTED sau khi đặt xong.
         SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
+        IF @@TRANCOUNT > 0
         BEGIN
             ROLLBACK TRANSACTION;
         END;
-
-        SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
         THROW;
     END CATCH;
 END;
 GO
 
--- 3. Nhận phòng: phiếu đã xác nhận -> đang ở; phòng sẵn sàng -> đang có khách.
--- @actorId là mã nhân viên đang thao tác, dùng để ghi nhật ký qua trigger.
+-- 5. Xử lý nhận phòng khi có phiếu đặt phòng.
 CREATE PROCEDURE dbo.uspNhanPhong
     @maPhieuDatPhong BIGINT,
     @actorId NVARCHAR(20)
@@ -195,7 +174,6 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- Bước 1: khóa phòng và đọc trạng thái trong cùng transaction.
         SELECT @maPhong = p.maPhong,
                @trangThaiPhong = p.trangThai
         FROM dbo.ChiTietDatPhong AS c
@@ -209,8 +187,6 @@ BEGIN
         IF @trangThaiPhong <> N'Sẵn sàng'
             THROW 51421, N'Phòng chưa sẵn sàng để nhận khách', 1;
 
-        -- Bước 2: chỉ nhận booking đang được xác nhận.
-        -- UPDLOCK ngăn hai thao tác cùng nhận một booking.
         UPDATE dbo.PhieuDatPhong WITH (UPDLOCK)
         SET trangThai = N'Đang ở',
             thoiDiemNhanPhongThucTe = SYSDATETIME()
@@ -220,10 +196,8 @@ BEGIN
         IF @@ROWCOUNT = 0
             THROW 51406, N'Phiếu đặt không ở trạng thái có thể nhận phòng', 1;
 
-        -- Bước 3: cho trigger biết nhân viên đang thao tác.
         EXEC sys.sp_set_session_context @key = N'actorId', @value = @actorId;
 
-        -- Bước 4: đổi trạng thái phòng trong cùng transaction.
         UPDATE dbo.Phong
         SET trangThai = N'Đang có khách'
         WHERE maPhong = @maPhong;
@@ -231,16 +205,14 @@ BEGIN
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        -- Hủy các thay đổi nếu một bước bị lỗi.
         IF XACT_STATE() <> 0
             ROLLBACK TRANSACTION;
-
-        -- Trả lỗi gốc về backend.
         THROW;
     END CATCH;
 END;
 GO
--- 4. Chỉ hủy phiếu đã xác nhận, chưa nhận phòng; giữ lại phiếu để tra cứu.
+
+-- 6. Xử lý trả phòng khi khách đã ở.
 CREATE PROCEDURE dbo.uspHuyDatPhong
     @maPhieuDatPhong BIGINT
 AS
@@ -274,7 +246,6 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- Lấy cùng khóa phòng với uspNhanPhong để hai thao tác được xếp thứ tự.
         IF NOT EXISTS (
             SELECT 1
             FROM dbo.Phong WITH (UPDLOCK, HOLDLOCK)
@@ -293,7 +264,6 @@ BEGIN
         )
             THROW 51409, N'Phòng vẫn đang có khách', 1;
 
-        -- Trigger dùng actorId để ghi người đổi trạng thái vào nhật ký.
         EXEC sys.sp_set_session_context @key = N'actorId', @value = @actorId;
 
         UPDATE dbo.Phong
