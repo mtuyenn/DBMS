@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Eye, EyeOff, User, Lock, Globe, AlertCircle, ArrowRight } from "lucide-react";
 
-import { formatAuthError } from "../../shared/utils/authValidation";
+import { classifyAccount, formatAuthError } from "../../shared/utils/authValidation";
 import { staffAccounts } from "../../app/navigation/staffAccounts";
 
 interface LoginPageProps {
@@ -11,6 +11,7 @@ interface LoginPageProps {
 
 const DEMO_ROLES = [
   { label: "Lễ tân", email: "FRONTDESK", desc: "Quầy lễ tân" },
+  { label: "Lễ tân 2", email: "FRONTDESK2", desc: "Quầy lễ tân thứ hai" },
   { label: "Buồng phòng", email: "HOUSEKEEP", desc: "Buồng phòng & dịch vụ" },
   { label: "Kế toán", email: "ACCOUNTING", desc: "Thanh toán & hóa đơn" },
   { label: "Quản lý", email: "MANAGER", desc: "Quản lý khách sạn" },
@@ -31,11 +32,11 @@ export default function LoginPage({ onLogin, onBack }: LoginPageProps) {
       setError("Vui lòng nhập đầy đủ thông tin đăng nhập.");
       return;
     }
-    const value = username.trim().toLowerCase();
-    const account = staffAccounts[value];
-    const employeeId = account?.employeeId ?? username.trim().toUpperCase();
-    const supported = Object.values(staffAccounts).some((staff) => staff.employeeId === employeeId);
-    if (!supported) {
+    const identity = username.trim();
+    const account = staffAccounts[identity.toLowerCase()];
+    const employeeId = account?.employeeId ?? identity.toUpperCase();
+    const classification = classifyAccount(employeeId);
+    if (!classification.valid || classification.type !== "employee") {
       setError("Chỉ nhân viên khách sạn mới đăng nhập tại đây.");
       return;
     }

@@ -80,40 +80,6 @@ GRANT EXECUTE ON dbo.uspPhatHanhBienLai TO role_LeTan;
 DENY DELETE ON dbo.PhieuDatPhong TO role_LeTan;
 GO
 
--- Kiem tra user dang thuoc role
-SELECT r.name AS TenRole, u.name AS TenUser
-FROM sys.database_role_members AS m
-JOIN sys.database_principals AS r ON r.principal_id = m.role_principal_id
-JOIN sys.database_principals AS u ON u.principal_id = m.member_principal_id
-WHERE r.name = N'role_LeTan';
-GO
-
--- Kiem tra cac quyen da cap cho role
-SELECT
-    p.state_desc AS TrangThaiQuyen,
-    p.permission_name AS TenQuyen,
-    OBJECT_SCHEMA_NAME(p.major_id) AS TenSchema,
-    OBJECT_NAME(p.major_id) AS TenDoiTuong
-FROM sys.database_permissions AS p
-JOIN sys.database_principals AS r ON r.principal_id = p.grantee_principal_id
-WHERE r.name = N'role_LeTan'
-ORDER BY p.state_desc, p.permission_name, TenDoiTuong;
-GO
-
-DELETE FROM dbo.PhieuDatPhong WHERE 1 = 0;
-
-ALTER ROLE role_LeTan DROP MEMBER u_LeTanDemo;
-DROP USER u_LeTanDemo;
-GO
-
--- Lễ tân được xem danh sách phòng
-SELECT TOP 5 * FROM dbo.Phong;
-
--- Lễ tân không được sửa dữ liệu phòng trực tiếp
-UPDATE dbo.Phong
-SET moTa = moTa
-WHERE 1 = 0;
-
 -- Tao Login, User va Role cho Quan ly, Buong phong va Ke toan
 IF SUSER_ID(N'login_QuanLy') IS NULL
     CREATE LOGIN login_QuanLy WITH PASSWORD = N'QuanLy@QLKS2026!', CHECK_POLICY = ON, DEFAULT_DATABASE = QLKS;
@@ -206,5 +172,3 @@ GRANT EXECUTE ON dbo.fnSoDuHoaDon TO role_KeToan;
 GRANT EXECUTE ON dbo.fnTongTienTheoPhuongThuc TO role_KeToan;
 GO
 
--- Mat khau demo: QuanLy@QLKS2026!, BuongPhong@QLKS2026!, KeToan@QLKS2026!
--- Dang nhap bang login_QuanLy, login_BuongPhong hoac login_KeToan de thu quyen.

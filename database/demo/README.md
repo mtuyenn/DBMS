@@ -8,6 +8,35 @@ Database nằm riêng trong Docker Compose project `web-hotel-standalone`, host 
 
 Chỉ dựng lại database demo `QLKS` riêng khi migration thật sự thay đổi. Không dùng lệnh reset này trên database khác.
 
+## Dựng lại database demo từ đầu
+
+Không cần mở và chạy từng file V1–V8. Flyway tự chạy các migration theo thứ tự khi backend khởi động trên một database trống.
+
+> **Cẩn thận:** các bước dưới đây xóa toàn bộ database `QLKS`. Chỉ làm trên SQL Server demo của project này ở `localhost,1434`; dừng backend trước. Không chạy trên server hoặc database khác.
+
+1. Nếu cần giữ dữ liệu hiện tại, sao lưu trước theo mục **Sao lưu bằng V7**. Procedure ghi đè `C:\Backup\QLKS.bak` mỗi lần chạy.
+2. Trong SSMS, kết nối tới `localhost,1434`, mở **New Query** trên server đó rồi chạy:
+
+```sql
+USE master;
+GO
+
+IF DB_ID(N'QLKS') IS NOT NULL
+BEGIN
+    ALTER DATABASE [QLKS] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE [QLKS];
+END;
+GO
+
+CREATE DATABASE [QLKS] COLLATE Vietnamese_100_CI_AI;
+GO
+```
+
+3. Khởi động backend theo mục **Chạy local** trong [Backend README](../../backend/README.md). Khi kết nối tới database trống, Flyway sẽ tự cài V1–V8 và seed dữ liệu nền.
+4. Nếu cần bộ dữ liệu tình huống cho báo cáo, chạy `database/demo/report_scenario.sql` một lần trên `QLKS` sau khi Flyway hoàn tất. Script này chỉ thêm dữ liệu, không tạo SQL object.
+
+Việc dựng lại database không cho phép sửa migration đã áp dụng. Nếu `QLKS` đã chạy V1–V8 và cần đổi một stored procedure, function hoặc trigger, hãy giữ nguyên migration cũ; tạo version mới chỉ sau khi chủ repo đồng ý. Khởi động backend sẽ tự áp dụng version mới, không cần xóa database.
+
 ## Sao lưu bằng V7
 
 V7 cài procedure `dbo.uspSaoLuuQLKS`. Trong SSMS, chọn `QLKS` rồi chạy đúng một lệnh:
@@ -26,4 +55,4 @@ Khôi phục nghĩa là chép dữ liệu từ file `.bak` trở lại database.
 
 ## Phân quyền bằng V8
 
-V8 tạo Login `login_LeTan`, User `user_LeTan` và role `role_LeTan`, rồi thêm User vào role. Mật khẩu demo là `LeTan@QLKS2026!`; chỉ dùng cho máy demo. Role được xem dữ liệu lễ tân cần dùng, chạy các procedure nghiệp vụ và không được xóa phiếu đặt trực tiếp. Trong SSMS, đăng nhập bằng Login này để thử quyền.
+V8 tạo Login `login_LeTan`, User `user_LeTan` và role `role_LeTan`, rồi thêm User vào role. Mật khẩu demo là `LeTan@QLKS2026!`; chỉ dùng cho máy demo. Role được xem dữ liệu lễ tân cần dùng, chạy các procedure nghiệp vụ và không được xóa phiếu đặt trực tiếp. Kịch bản SELECT để trình bày quyền nằm ở `backend/src/test/java/com/hospitality/mis/db/report_permissions_demo.sql`.

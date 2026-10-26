@@ -1,6 +1,3 @@
--- V1: 12 bảng cốt lõi của khách sạn nhỏ, kèm dữ liệu mẫu ban đầu.
--- Giữ cấu trúc bằng tiếng Việt không dấu theo hợp đồng SQL Server của dự án.
-
 CREATE TABLE dbo.NhanVien (
     maNhanVien NVARCHAR(20) NOT NULL PRIMARY KEY,
     hoVaTen NVARCHAR(100) NOT NULL,
@@ -138,7 +135,6 @@ CREATE TABLE dbo.BienLai (
     CONSTRAINT ckBienLaiSoTien CHECK (soTien > 0)
 );
 
--- Bốn tài khoản dùng cho demo, cùng mật khẩu hotel123 (BCrypt cost 12).
 INSERT INTO dbo.NhanVien(maNhanVien,hoVaTen,matKhau,vaiTro,soDienThoai) VALUES
 (N'FRONTDESK',N'Nguyễn Minh Lễ Tân',N'$2a$12$5gNPcR6X5sTK6KSqi4PPKOgq6sXai.z77eMBmEDToFQCbOmVNGoiO',N'Lễ tân',N'0902000001'),
 (N'MANAGER',N'Hoàng Minh Quản',N'$2a$12$5gNPcR6X5sTK6KSqi4PPKOgq6sXai.z77eMBmEDToFQCbOmVNGoiO',N'Quản lý',N'0902000006'),
@@ -190,8 +186,6 @@ INSERT INTO dbo.DichVu(maDichVu,ten,gia,donViTinh,moTa) VALUES
 (N'POOL',N'Vé hồ bơi',120000,N'lượt',N'Sử dụng hồ bơi trong ngày.'),
 (N'MEETING',N'Phòng họp nhỏ',1200000,N'giờ',N'Phòng họp riêng, phù hợp nhóm nhỏ.');
 
--- Một ngày mẫu có khách đang ở, khách đến, lịch sắp tới và dịch vụ đang dùng.
--- Ngày lấy theo giờ máy chủ để bộ demo luôn khớp với ngày vận hành hiện tại.
 INSERT INTO dbo.KhachLuuTru(hoVaTen,soDienThoai,email,soGiayToTuyThan) VALUES
 (N'Nguyễn Minh Anh',N'0900000101',N'minhanh@example.test',N'DEMO000101'),
 (N'Trần Quốc Bảo',N'0900000102',N'quocbao@example.test',N'DEMO000102'),
@@ -260,7 +254,6 @@ INSERT INTO dbo.SuDungDichVu(maPhieuDatPhong,maDichVu,soLuong,donGia,thoiDiem) V
 (@phieu201,N'LAUNDRY',2,90000,DATEADD(HOUR,9,CONVERT(DATETIME2(0),@ngayDemo))),
 (@phieu302,N'SPA60',1,650000,DATEADD(DAY,-1,DATEADD(HOUR,17,CONVERT(DATETIME2(0),@ngayDemo))));
 
--- Hóa đơn chờ thu khớp lượt trả phòng hôm nay: một đêm phòng tiêu chuẩn, chưa dùng dịch vụ.
 INSERT INTO dbo.HoaDon(maPhieuDatPhong,tienPhong,tienDichVu,tongTien,trangThai)
 VALUES (@phieu101,1100000,0,1100000,N'Chưa thanh toán');
 
